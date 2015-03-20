@@ -40,12 +40,21 @@ class PredictionEngine(object):
         
         self._teamDict = {}
         
-        if self._old_data.has_key("Dummy"):
-            self._emptyDict["ELO"] = [self._old_data["Dummy"]]
-        else:
-            dem = sorted(self._old_data.values())[:3]
-            val = sum(dem)/3.
-            self._emptyDict["ELO"] = [val]
+        for k in fitDict[league].keys():
+            if self._old_data.has_key("Dummy"):
+                self._emptyDict[k] = [self._old_data["Dummy"]]
+            else:
+                dem = sorted([v[k] for v in self._old_data.values()])[:3]
+                val = sum(dem)/3.
+                self._emptyDict[k] = [val]
+        
+        
+        #if self._old_data.has_key("Dummy"):
+        #    self._emptyDict["ELO"] = [self._old_data["Dummy"]]
+        #else:
+        #    dem = sorted(self._old_data.values())[:3]
+        #    val = sum(dem)/3.
+        #    self._emptyDict["ELO"] = [val]
         
         self._Reader = csv.DictReader(self._csvFile)
         
@@ -70,11 +79,14 @@ class PredictionEngine(object):
             if not self._teamDict.has_key(r["HomeTeam"]):
                 self._teamDict[r["HomeTeam"]] = deepcopy(self._emptyDict)
                 if self._old_data.has_key(r["HomeTeam"]):
-                    self._teamDict[r["HomeTeam"]]["ELO"][-1] = self._old_data[r["HomeTeam"]]
+                    for k in fitDict[self._league].keys():
+                        self._teamDict[r["HomeTeam"]][k] = [self._old_data[r["HomeTeam"]][k]]
+
             if not self._teamDict.has_key(r["AwayTeam"]):
                 self._teamDict[r["AwayTeam"]] = deepcopy(self._emptyDict)
                 if self._old_data.has_key(r["AwayTeam"]):
-                    self._teamDict[r["AwayTeam"]]["ELO"][-1] = self._old_data[r["AwayTeam"]]
+                    for k in fitDict[self._league].keys():
+                        self._teamDict[r["AwayTeam"]][k] = [self._old_data[r["AwayTeam"]][k]]
              
             self._teamDict[r["HomeTeam"]]["homeGoals"].append(int(r["FTHG"]))
             self._teamDict[r["AwayTeam"]]["awayGoals"].append(int(r["FTAG"]))
@@ -101,8 +113,8 @@ class PredictionEngine(object):
                     
             print "%(HomeTeam)s %(FTHG)s -- %(FTAG)s %(AwayTeam)s" % r
             
-            r["ELOH"] = self._teamDict[r["HomeTeam"]]["ELO"][-1]
-            r["ELOA"] = self._teamDict[r["AwayTeam"]]["ELO"][-1]
+            r["ELOH"] = self._teamDict[r["HomeTeam"]]["ELO_h"][-1]
+            r["ELOA"] = self._teamDict[r["AwayTeam"]]["ELO_h"][-1]
             
             for p in self._predictors:
                 try:
@@ -112,18 +124,18 @@ class PredictionEngine(object):
                     continue
             
          
-            eH0 = self._teamDict[r["HomeTeam"]]["ELO"][-1]
-            eA0 = self._teamDict[r["AwayTeam"]]["ELO"][-1]
+            eH0 = self._teamDict[r["HomeTeam"]]["ELO_h"][-1]
+            eA0 = self._teamDict[r["AwayTeam"]]["ELO_h"][-1]
                 
-            eH,eA = calcELO_2(r, eH0, eA0)           
-            self._teamDict[r["HomeTeam"]]["ELO"].append(eH)
-            self._teamDict[r["AwayTeam"]]["ELO"].append(eA)  
+            eH,eA = calcELO_h(r, eH0, eA0)           
+            self._teamDict[r["HomeTeam"]]["ELO_h"].append(eH)
+            self._teamDict[r["AwayTeam"]]["ELO_h"].append(eA)  
                 
             scoreH,scoreA = weighted_score(r)  
             if not self._year in self._dataPoints["years"]:
                 self._dataPoints[res].append((eH0-eA0, scoreH-scoreA))    
                 
-            print "%s (%g-->%g) %s (%g-->%g)" % (r["HomeTeam"],self._teamDict[r["HomeTeam"]]["ELO"][-2],self._teamDict[r["HomeTeam"]]["ELO"][-1],r["AwayTeam"],self._teamDict[r["AwayTeam"]]["ELO"][-2],self._teamDict[r["AwayTeam"]]["ELO"][-1]) 
+            print "%s (%g-->%g) %s (%g-->%g)" % (r["HomeTeam"],self._teamDict[r["HomeTeam"]]["ELO_h"][-2],self._teamDict[r["HomeTeam"]]["ELO_h"][-1],r["AwayTeam"],self._teamDict[r["AwayTeam"]]["ELO_h"][-2],self._teamDict[r["AwayTeam"]]["ELO_h"][-1]) 
          
             print "\n\n"
          
@@ -154,8 +166,8 @@ class PredictionEngine(object):
         ax3.scatter([i[0] for i in self._dataPoints["X"]],[i[1] for i in self._dataPoints["X"]],c="yellow")
         
         
-        last_elo = [v["ELO"][-1] for v in self._teamDict.values()]
-        print "ELO Sum: %g (%g) Max Delta: %g Max Ratio: %g" % \
+        last_elo = [v["ELO_h"][-1] for v in self._teamDict.values()]
+        print "ELO_h Sum: %g (%g) Max Delta: %g Max Ratio: %g" % \
             (sum(last_elo),sum(last_elo)-(1000.*len(last_elo)),max(last_elo)-min(last_elo),max(last_elo)/min(last_elo))
         
         fig.savefig("output/wins_%s_%d.png" % (self._league,self._year))

@@ -27,3 +27,6 @@ whLinks = ["http://sports.williamhill.com/bet/en-ca/betting/t/338/Spanish%2dLa%2
 for i in whLinks:
         os.system("curl %s -o %s" % (i, os.path.basename(i).replace("%2d","_")))
         time.sleep(1)
+
+
+

@@ -24,7 +24,8 @@ class BetPredictor(object):
                   "Atletico Madrid"  : "Ath Madrid",
                   "Celta Vigo"       : "Celta",
                   'Evian'            : 'Evian Thonon Gaillard',
-                  'Paris Saint-Germain' : 'Paris SG',}
+                  'Paris Saint-Germain' : 'Paris SG',
+                  'Espanyol'         : 'Espanol'}
     
     def __init__(self, league, teamDict):
         self._inFile = open("data/%s.html" % self.compDict[league])
@@ -45,7 +46,7 @@ class BetPredictor(object):
                 teamA = self.teamChange[teamA]
             if teamB in self.teamChange.keys():
                 teamB = self.teamChange[teamB]  
-            r = {"ELOH" : self._teamDict[teamA]["ELO"][-1], "ELOA" : self._teamDict[teamB]["ELO"][-1]}
+            r = {"ELOH" : self._teamDict[teamA]["ELO_h"][-1], "ELOA" : self._teamDict[teamB]["ELO_h"][-1]}
             print "--------\n"
             for p in self._predictors:
                 print "%s: %s -- %s %s (%g %g)" % (p.name, teamA,teamB, p.predict(r), r["ELOH"], r["ELOA"])

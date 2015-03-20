@@ -9,6 +9,16 @@ import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+def updateELO(t,r,key,func):
+    eH0 = t[r["HomeTeam"]][key][-1]
+    eA0 = t[r["AwayTeam"]][key][-1]
+
+    eH,eA = func(r, eH0, eA0)     
+    #eH,eA = calcELO_b(r, eH0, eA0) 
+    t[r["HomeTeam"]][key].append(eH)
+    t[r["AwayTeam"]][key].append(eA)
+    return (eH,eA)
+
 class CompetitionStats(object):     
     def __init__(self,league,year):
         self._year   = year
@@ -24,6 +34,8 @@ class CompetitionStats(object):
         except:
             self._old_data = {"Dummy" : 1000.}
 
+        print self._old_data
+
         try:
             p_f = open("%s_PDF.pickle" % league)
             self._dataPoints = cPickle.load(p_f)
@@ -34,12 +46,13 @@ class CompetitionStats(object):
         
         self._teamDict = {}
         
-        if self._old_data.has_key("Dummy"):
-            self._emptyDict["ELO"] = [self._old_data["Dummy"]]
-        else:
-            dem = sorted(self._old_data.values())[:3]
-            val = sum(dem)/3.
-            self._emptyDict["ELO"] = [val]
+        for k in fitDict[league].keys():
+            if self._old_data.has_key("Dummy"):
+                self._emptyDict[k] = [self._old_data["Dummy"]]
+            else:
+                dem = sorted([v[k] for v in self._old_data.values()])[:3]
+                val = sum(dem)/3.
+                self._emptyDict[k] = [val]
         
         self._Reader = csv.DictReader(self._csvFile)
         
@@ -47,9 +60,17 @@ class CompetitionStats(object):
 
         self._draw_actu    = 0    
         
+        self.o_f = open("output/%s/index.html" % self._league, "w")
+        self.o_f.write("<html><head>\n<title>%s %d Stats</title>\n</head>\n\n<body>" % (self._league, self._year))
+        
         return
     
     def runData(self):
+        
+        #self.o_f.write("<h2>Matches</h2>\n")
+        #self.o_f.write("<table border=0 cellpadding=5>")
+        #self.o_f.write("<tr><th>Team A</th><th>Team B</th><th>Result</th><th>ELO_h A</th><th>ELO_b A</th><th>ELO_g A</th><th>ELO_g2 A</th><th>ELO_h B</th><th>ELO_b B</th><th>ELO_g B</th><th>ELO_g2 B</th></tr>\n")
+ 
         
         for r in self._Reader:
             self._games+=1
@@ -57,11 +78,14 @@ class CompetitionStats(object):
             if not self._teamDict.has_key(r["HomeTeam"]):
                 self._teamDict[r["HomeTeam"]] = deepcopy(self._emptyDict)
                 if self._old_data.has_key(r["HomeTeam"]):
-                    self._teamDict[r["HomeTeam"]]["ELO"][-1] = self._old_data[r["HomeTeam"]]
+                    for k in fitDict[self._league].keys():
+                        print "!!!!", r["HomeTeam"], self._teamDict[r["HomeTeam"]]
+                        self._teamDict[r["HomeTeam"]][k] = [self._old_data[r["HomeTeam"]][k]]
             if not self._teamDict.has_key(r["AwayTeam"]):
                 self._teamDict[r["AwayTeam"]] = deepcopy(self._emptyDict)
                 if self._old_data.has_key(r["AwayTeam"]):
-                    self._teamDict[r["AwayTeam"]]["ELO"][-1] = self._old_data[r["AwayTeam"]]
+                    for k in fitDict[self._league].keys():
+                        self._teamDict[r["AwayTeam"]][k] = [self._old_data[r["AwayTeam"]][k]]
              
             self._teamDict[r["HomeTeam"]]["homeGoals"].append(int(r["FTHG"]))
             self._teamDict[r["AwayTeam"]]["awayGoals"].append(int(r["FTAG"]))
@@ -90,28 +114,42 @@ class CompetitionStats(object):
                     
             print "%(HomeTeam)s %(FTHG)s -- %(FTAG)s %(AwayTeam)s" % r
             
-            r["ELOH"] = self._teamDict[r["HomeTeam"]]["ELO"][-1]
-            r["ELOA"] = self._teamDict[r["AwayTeam"]]["ELO"][-1]
+            #self.o_f.write("<tr><td>%(HomeTeam)s</td>%(AwayTeam)s</td><td>%(FTHG)d</td>><td>%(FTAG)d</td><td>ELO_h A</td><td>ELO_b A</td><td>ELO_g A</td><td>ELO_g2 A</td><td>ELO_h B</td><td>ELO_b B</td><td>ELO_g B</td><td>ELO_g2 B</td></tr>\n")
+
+            
+  
+            
+            updateELO(self._teamDict,r,"ELO_h",calcELO_h)
+            updateELO(self._teamDict,r,"ELO_b",calcELO_b)
+            updateELO(self._teamDict,r,"ELO_g",calcELO_g)
+            updateELO(self._teamDict,r,"ELO_g2",calcELO_g2)
+            
+            #r["ELOH"] = self._teamDict[r["HomeTeam"]]["ELO"][-1]
+            #r["ELOA"] = self._teamDict[r["AwayTeam"]]["ELO"][-1]
                         
          
-            eH0 = self._teamDict[r["HomeTeam"]]["ELO"][-1]
-            eA0 = self._teamDict[r["AwayTeam"]]["ELO"][-1]
+            #eH0 = self._teamDict[r["HomeTeam"]]["ELO"][-1]
+            #eA0 = self._teamDict[r["AwayTeam"]]["ELO"][-1]
                 
-            eH,eA = calcELO_2(r, eH0, eA0)      
+            #eH,eA = calcELO_h(r, eH0, eA0)      
                 
                 
-            self._teamDict[r["HomeTeam"]]["ELO"].append(eH)
-            self._teamDict[r["AwayTeam"]]["ELO"].append(eA)  
+            #self._teamDict[r["HomeTeam"]]["ELO"].append(eH)
+            #self._teamDict[r["AwayTeam"]]["ELO"].append(eA)  
                 
-            scoreH,scoreA = weighted_score(r)  
-            if not self._year in self._dataPoints["years"]:
-                self._dataPoints[res].append((eH0-eA0, scoreH-scoreA))    
-                
-            print "%s (%g-->%g) %s (%g-->%g)" % (r["HomeTeam"],self._teamDict[r["HomeTeam"]]["ELO"][-2],self._teamDict[r["HomeTeam"]]["ELO"][-1],r["AwayTeam"],self._teamDict[r["AwayTeam"]]["ELO"][-2],self._teamDict[r["AwayTeam"]]["ELO"][-1]) 
+            #scoreH,scoreA = weighted_score(r)  
+            #if not self._year in self._dataPoints["years"]:
+            #    self._dataPoints[res].append((eH0-eA0, scoreH-scoreA))    
+            
+             
+            for k in fitDict[self._league].keys():
+                print "%s %s (%g-->%g) %s (%g-->%g)" % (r["HomeTeam"],k,self._teamDict[r["HomeTeam"]][k][-2],self._teamDict[r["HomeTeam"]][k][-1],r["AwayTeam"],self._teamDict[r["AwayTeam"]][k][-2],self._teamDict[r["AwayTeam"]][k][-1]) 
          
             print "\n\n"
          
         self._csvFile.close()
+        
+        #self.o_f.write("</table>\n") 
             
         return
     
@@ -122,9 +160,10 @@ class CompetitionStats(object):
         canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111, title="%s ELO"%team)
         
-        y = _d["ELO"]
-        x = np.linspace(0,1,len(y))
-        ax.plot(x,y)
+        for k in fitDict[self._league].keys():
+            y = _d[k]
+            x = np.linspace(0,1,len(y))
+            ax.plot(x,y)
         
         fig.savefig("output/%s/%s_ELO.png" % (self._league, team))
         
@@ -210,39 +249,45 @@ class CompetitionStats(object):
         
         ax = fig.add_subplot(111, title="%s Form=%g"% (team,_f[-1]))
         
-        x = np.linspace(0,1,len(_f))
-        ax.plot(x,_f)
+        #x = np.linspace(0,1,len(_f))
+        x = range(0,len(_f))
+        
+        _fplus  = map(lambda x:[0.,x][x>0] ,_f)
+        _fminus = map(lambda x:[0.,x][x<0],_f)
+        
+        ax.bar(x,_fplus,1.,color="g")
+        ax.bar(x,_fminus,1.,color="r")
         
         fig.savefig("output/%s/%s_Form.png" % (self._league, team))
         
         return
     
     def finalReport(self):       
-        ks = sorted(self._teamDict.keys(), key=lambda x:self._teamDict[x]["ELO"][-1],reverse=True)
-        o_f = open("output/%s/index.html" % self._league, "w")
-        o_f.write("<html><head>\n<title>%s %d Stats</title>\n</head>\n\n<body>" % (self._league, self._year))
+        ks = sorted(self._teamDict.keys(), key=lambda x:self._teamDict[x]["ELO_h"][-1],reverse=True)
+
         for i in ks:
             games = len(self._teamDict[i]["gameResults"])
             wins     = len(filter(lambda x:x==3, self._teamDict[i]["gameResults"]))
             draws    = len(filter(lambda x:x==1, self._teamDict[i]["gameResults"]))
             losses   = len(filter(lambda x:x==0, self._teamDict[i]["gameResults"]))
-            elo      = self._teamDict[i]["ELO"][-1]
+            elo      = self._teamDict[i]["ELO_h"][-1]
             points   = sum(self._teamDict[i]["gameResults"])
             goals_for     = sum(self._teamDict[i]["homeGoals"])+sum(self._teamDict[i]["awayGoals"])
             goals_against = sum(self._teamDict[i]["homeAgainst"])+sum(self._teamDict[i]["awayAgainst"])
-            #o_f.write("%16s\t%d\t%d\t%d\t%d\t%d\t%d\n" % (i,points,games,wins,draws,losses,elo))
-            o_f.write("<h2>%s</h2>\n" % i)
-            o_f.write("<table border=0>")
-            o_f.write("<tr><th>ELO</th><th>Points</th><th>Games</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th></tr>\n")
-            o_f.write("<tr><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>\n" % (elo,points,games,wins,draws,losses,goals_for,goals_against))
-            o_f.write("</table>\n")
-            o_f.write('<img src="%s_ELO.png" width="400">\n' % i)
-            o_f.write('<img src="%s_Goals.png" width="400">\n' % i)
-            o_f.write('<img src="%s_GoalsAgainst.png" width="400">\n' % i)
-            o_f.write('<img src="%s_Form.png" width="400">\n' % i)
+            #self.o_f.write("%16s\t%d\t%d\t%d\t%d\t%d\t%d\n" % (i,points,games,wins,draws,losses,elo))
+            self.o_f.write("<h2>%s</h2>\n" % i)
+            self.o_f.write("<table border=0>")
+            self.o_f.write("<tr><th>ELO</th><th>Points</th><th>Games</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th></tr>\n")
+            self.o_f.write("<tr><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>\n" % (elo,points,games,wins,draws,losses,goals_for,goals_against))
+            self.o_f.write("</table>\n")
+            self.o_f.write('<img src="%s_ELO.png" width="400">\n' % i)
+            self.o_f.write('<img src="%s_Goals.png" width="400">\n' % i)
+            self.o_f.write('<img src="%s_GoalsAgainst.png" width="400">\n' % i)
+            self.o_f.write('<img src="%s_Form.png" width="400">\n' % i)
             self.makeELOPlot(i)
             self.makeGoalsPlot(i)
             self.makeGoalsAgainstPlot(i)
             self.makeFormPlot(i)
-        o_f.write("</body>\n</html>\n")
+        self.o_f.write("</body>\n</html>\n")
+        self.o_f.close()
         return    
