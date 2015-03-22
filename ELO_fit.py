@@ -20,6 +20,8 @@ dataPoints = { "ELO_h" : {"1" : [], "2" : [], "X" : []},
                "ELO_g" : {"1" : [], "2" : [], "X" : []},   
                "ELO_g2" : {"1" : [], "2" : [], "X" : []},
                "Form" : {"1" : [], "2" : [], "X" : []},
+               "Form_2" : {"1" : [], "2" : [], "X" : []},
+               "LDA_2" : {"1" : [], "2" : [], "X" : []},
                }
 
 formELOPoints = {"1" : [], "2" : [], "X" : []}
@@ -29,23 +31,19 @@ brierScores = { "ELO_h" : [],
                 "ELO_b" : [],
                 "ELO_g" : [],  
                 "ELO_g2" : [],
-                #"Form"   : [],
+                "Form"   : [],
+                "Form_2"   : [],
+                "LDA_2"  : [],
                 }
 
-pseudoLikelihood = { "ELO_h" : [],
-                    "ELO_b" : [],
-                    "ELO_g" : [],  
-                    "ELO_g2" : [],
-                    #"Form"   : [],
-                    }
+successRate = deepcopy(brierScores)
+pseudoLikelihood = deepcopy(brierScores)
 
-comp = "SerieA"
+comp = "Bundesliga"
 l = sorted(glob.glob("data/%s*.csv" % comp))
 print l
 
 comp = comp.replace("_","")
-
-
     
 def updateELO(match,tD,key,func):
     tH = tD[match.get_home_team()]
@@ -70,7 +68,7 @@ def updateDataPoints(match,tD,key):
     dataPoints[key][res].append(eH0-eA0)       
     return
 
-def updateBrierScores(match,tD,key,comp):
+def getProbRes(match,tD,key,comp):
     tH  = tD[match.get_home_team()]
     tA  = tD[match.get_away_team()]
     res = match.get_result()
@@ -87,9 +85,20 @@ def updateBrierScores(match,tD,key,comp):
     p1 =  func(x,*popt1)
     p2 =  func(x,*popt2)
     pX = max(0.,1.-(p1+p2))
-    
+
     prob = np.array([p1,p2,pX])
     ress = np.array([res=="1",res=="2",res=="X"])
+    
+    return (prob,ress)
+
+def updateSuccessRate(match,tD,key,comp):    
+    prob, ress = getProbRes(match,tD,key,comp)
+    
+    successRate[key].append(prob.tolist().index(max(prob))==ress.tolist().index(max(ress)))       
+    return
+
+def updateBrierScores(match,tD,key,comp):
+    prob, ress = getProbRes(match,tD,key,comp)
     
     bs = brierScore(prob, ress)
     
@@ -97,25 +106,7 @@ def updateBrierScores(match,tD,key,comp):
     return
 
 def updatePseudoLikelihood(match,tD,key,comp):
-    tH  = tD[match.get_home_team()]
-    tA  = tD[match.get_away_team()]
-    res = match.get_result()
-    popt1 = fitDict[comp][key][0]
-    popt2 = fitDict[comp][key][1]
-        
-    def func(x,a,b,c,d):
-        return d+(a/(1+np.exp(-b*(x+c))))
-    
-    eH0 = tH.get_ranking(key)
-    eA0 = tA.get_ranking(key)
-    x = eH0-eA0 
-        
-    p1 =  func(x,*popt1)
-    p2 =  func(x,*popt2)
-    pX = max(0.,1.-(p1+p2))
-    
-    prob = np.array([p1,p2,pX])
-    ress = np.array([res=="1",res=="2",res=="X"])
+    prob, ress = getProbRes(match,tD,key,comp)
     
     pl = max(prob*ress)
     
@@ -152,10 +143,10 @@ for fn in l[:-1]:
         
         if not teamDict.has_key(homeTeam):
             print "NEW TEAM",match.get_date(),"!>",homeTeam,"<!"
-            teamDict[homeTeam] = Team(homeTeam)
+            teamDict[homeTeam] = Team(homeTeam,comp)
         if not teamDict.has_key(awayTeam):
             print "NEW TEAM",match.get_date(),"!>",awayTeam,"<!"
-            teamDict[awayTeam] = Team(awayTeam)
+            teamDict[awayTeam] = Team(awayTeam,comp)
     
         teamDict[homeTeam].add_match(match)
         teamDict[awayTeam].add_match(match)
@@ -164,6 +155,7 @@ for fn in l[:-1]:
             updateDataPoints(match,teamDict,k)
             updateBrierScores(match,teamDict,k,comp)
             updatePseudoLikelihood(match,teamDict,k,comp)
+            updateSuccessRate(match,teamDict,k,comp)
     
         updateELO(match,teamDict,"ELO_h",calcELO_h)
         updateELO(match,teamDict,"ELO_b",calcELO_b)
@@ -173,8 +165,12 @@ for fn in l[:-1]:
         rk = "ELO_g2"
         eloDiff  = teamDict[homeTeam].get_ranking(rk)-teamDict[awayTeam].get_ranking(rk)
         formDiff = teamDict[homeTeam].get_form()-teamDict[awayTeam].get_form()
+        form2Diff = teamDict[homeTeam].get_form2()-teamDict[awayTeam].get_form2()
         
-        formELOPoints[match.get_result()].append((eloDiff,formDiff))
+        formELOPoints[match.get_result()].append((eloDiff,form2Diff))
+        
+        dataPoints["Form"][match.get_result()].append(formDiff)
+        dataPoints["Form_2"][match.get_result()].append(form2Diff)
         
     #elo_sum = sum([teamDict[i].get_ranking("ELO_h") for i in seasonTeams])
     #print "ELO_h Sum:", elo_sum
@@ -208,6 +204,8 @@ formELOArray =np.concatenate((f1,f2,f3))
 X=formELOArray
 y=np.concatenate((np.array([1 for i in f1]),np.array([2 for i in f2]),np.array([3 for i in f3])))
 
+#X1=np.concatenate((f1,f2))
+#y1=np.concatenate((np.array([1 for i in f1]),np.array([2 for i in f2])))
 
 from sklearn.decomposition import PCA as sklearnPCA
 sklearn_pca = sklearnPCA(n_components=1)
@@ -226,9 +224,6 @@ ax.bar(b1[:-1],h1,width=b1[1]-b1[0],color='blue')
 ax.bar(b2[:-1],h2,width=b2[1]-b2[0],color='red',bottom=h1)
 ax.bar(b3[:-1],h3,width=b3[1]-b3[0],color='yellow',bottom=h1+h2)
 fig.savefig("output/%s_PCA.png" % (comp))
-
-from sklearn import preprocessing
-preprocessing.scale(X, axis=0, with_mean=True, with_std=True, copy=False)
 
 #o_f = open("data/%s_%d_ELO.pickle" % (comp.replace('_',''),2013), "w")
 #d={}
@@ -261,71 +256,105 @@ print "\n\n"
 print "Draws :%g%%" % (100.*draw_actu/games)
 print "\n\n"   
 
-np.set_printoptions(precision=4)
 
-mean_vectors = []
-for cl in range(1,4):
-    mean_vectors.append(np.mean(X[y==cl], axis=0))
-    print 'Mean Vector class %s: %s\n' %(cl, mean_vectors[cl-1])
+def perform_lda(X,y,nclasses):
     
-S_W = np.zeros((2,2))
-for cl,mv in zip(range(1,2), mean_vectors):
-    class_sc_mat = np.zeros((2,2))                  # scatter matrix for every class
-    for row in X[y == cl]:
-        row, mv = row.reshape(2,1), mv.reshape(2,1) # make column vectors
-        class_sc_mat += (row-mv).dot((row-mv).T)
-    S_W += class_sc_mat                             # sum class scatter matrices
-print 'within-class Scatter Matrix:\n', S_W
-
-overall_mean = np.mean(mean_vectors, axis=0)
-
-S_B = np.zeros((2,2))
-for i,mean_vec in enumerate(mean_vectors):
-    n = X[y==i+1,:].shape[0]
-    mean_vec = mean_vec.reshape(2,1) # make column vector
-    overall_mean = overall_mean.reshape(2,1) # make column vector
-    S_B += n * (mean_vec - overall_mean).dot((mean_vec - overall_mean).T)
-
-print 'between-class Scatter Matrix:\n', S_B
-
-eig_vals, eig_vecs = np.linalg.eig(np.linalg.inv(S_W).dot(S_B))
-
-for i in range(len(eig_vals)):
-    eigvec_sc = eig_vecs[:,i].reshape(2,1)
-    print '\nEigenvector {}: \n{}'.format(i+1, eigvec_sc.real)
-    print 'Eigenvalue {:}: {:.2e}'.format(i+1, eig_vals[i].real)
-
-for i in range(len(eig_vals)):
-    eigv = eig_vecs[:,i].reshape(2,1)
-    np.testing.assert_array_almost_equal(np.linalg.inv(S_W).dot(S_B).dot(eigv),
-                                         eig_vals[i] * eigv,
-                                         decimal=6, err_msg='', verbose=True)
-print 'ok'
-
-
-# Make a list of (eigenvalue, eigenvector) tuples
-eig_pairs = [(np.abs(eig_vals[i]), eig_vecs[:,i]) for i in range(len(eig_vals))]
-
-# Sort the (eigenvalue, eigenvector) tuples from high to low
-eig_pairs = sorted(eig_pairs, key=lambda k: k[0], reverse=True)
-
-# Visually confirm that the list is correctly sorted by decreasing eigenvalues
-
-print 'Eigenvalues in decreasing order:\n'
-for i in eig_pairs:
-    print i[0]
+    x1_mean = np.mean(X[:,0])
+    x1_std  = np.std(X[:,0])
+    x2_mean = np.mean(X[:,1])
+    x2_std  = np.std(X[:,1])
     
-print 'Variance explained:\n'
-eigv_sum = sum(eig_vals)
-for i,j in enumerate(eig_pairs):
-    print 'eigenvalue {0:}: {1:.2%}'.format(i+1, (j[0]/eigv_sum).real)
+    print "Axis 1 mean=%g std=%g" % (x1_mean, x1_std)
+    print "Axis 2 mean=%g std=%g" % (x2_mean, x2_std)
     
-#W = np.hstack((eig_pairs[0][1].reshape(2,1), eig_pairs[1][1].reshape(2,1)))
-W = eig_pairs[0][1].reshape(2,1)
-W *= -1.
-print 'Matrix W:\n', W.real
+    print "'sig' : np.array([[%g, 0.],[0., %g]])" % (x1_std, x2_std)
+    print "'mu' : np.array([%g, %g])" % (x1_mean, x2_mean)
+    
+    x00 = X[0,0]
+    x01 = X[0,1]
+    x10 = X[-1,0]
+    x11 = X[-1,1]    
+        
+    from sklearn import preprocessing
+    preprocessing.scale(X, axis=0, with_mean=True, with_std=True, copy=False)
+        
+    assert np.abs((X[0,0]*x1_std)+x1_mean-x00)<1e-6
+    assert np.abs((X[0,1]*x2_std)+x2_mean-x01)<1e-6
+    assert np.abs((X[-1,0]*x1_std)+x1_mean-x10)<1e-6
+    assert np.abs((X[-1,1]*x2_std)+x2_mean-x11)<1e-6
+    
+    np.set_printoptions(precision=4)
+    
+    mean_vectors = []
+    for cl in range(1,nclasses+1):
+        mean_vectors.append(np.mean(X[y==cl], axis=0))
+        print 'Mean Vector class %s: %s\n' %(cl, mean_vectors[cl-1])
+        
+    S_W = np.zeros((2,2))
+    for cl,mv in zip(range(1,2), mean_vectors):
+        class_sc_mat = np.zeros((2,2))                  # scatter matrix for every class
+        for row in X[y == cl]:
+            row, mv = row.reshape(2,1), mv.reshape(2,1) # make column vectors
+            class_sc_mat += (row-mv).dot((row-mv).T)
+        S_W += class_sc_mat                             # sum class scatter matrices
+    print 'within-class Scatter Matrix:\n', S_W
+    
+    overall_mean = np.mean(mean_vectors, axis=0)
+    
+    S_B = np.zeros((2,2))
+    for i,mean_vec in enumerate(mean_vectors):
+        n = X[y==i+1,:].shape[0]
+        mean_vec = mean_vec.reshape(2,1) # make column vector
+        overall_mean = overall_mean.reshape(2,1) # make column vector
+        S_B += n * (mean_vec - overall_mean).dot((mean_vec - overall_mean).T)
+    
+    print 'between-class Scatter Matrix:\n', S_B
+    
+    eig_vals, eig_vecs = np.linalg.eig(np.linalg.inv(S_W).dot(S_B))
+    
+    for i in range(len(eig_vals)):
+        eigvec_sc = eig_vecs[:,i].reshape(2,1)
+        print '\nEigenvector {}: \n{}'.format(i+1, eigvec_sc.real)
+        print 'Eigenvalue {:}: {:.2e}'.format(i+1, eig_vals[i].real)
+    
+    for i in range(len(eig_vals)):
+        eigv = eig_vecs[:,i].reshape(2,1)
+        np.testing.assert_array_almost_equal(np.linalg.inv(S_W).dot(S_B).dot(eigv),
+                                             eig_vals[i] * eigv,
+                                             decimal=6, err_msg='', verbose=True)
+    print 'ok'
+    
+    
+    # Make a list of (eigenvalue, eigenvector) tuples
+    eig_pairs = [(np.abs(eig_vals[i]), eig_vecs[:,i]) for i in range(len(eig_vals))]
+    
+    # Sort the (eigenvalue, eigenvector) tuples from high to low
+    eig_pairs = sorted(eig_pairs, key=lambda k: k[0], reverse=True)
+    
+    # Visually confirm that the list is correctly sorted by decreasing eigenvalues
+    
+    print 'Eigenvalues in decreasing order:\n'
+    for i in eig_pairs:
+        print i[0]
+        
+    print 'Variance explained:\n'
+    eigv_sum = sum(eig_vals)
+    for i,j in enumerate(eig_pairs):
+        print 'eigenvalue {0:}: {1:.2%}'.format(i+1, (j[0]/eigv_sum).real)
+        
+    #W = np.hstack((eig_pairs[0][1].reshape(2,1), eig_pairs[1][1].reshape(2,1)))
+    W = eig_pairs[0][1].reshape(2,1)
+    #W *= -1.
+    print 'Matrix W:\n', W.real
+    
+    print "'W' : np.array([%g, %g])" % (W[0],W[1])
+    
+    X_lda = X.dot(W)
+    return X_lda
 
-X_lda = X.dot(W)
+
+X_lda = perform_lda(X, y, 3)
+#X_lda1 = perform_lda(X1, y1,2)
 
 Xrange=(np.floor(min(X_lda)),np.ceil(max(X_lda)))
 
@@ -335,11 +364,17 @@ h2,b2=np.histogram(X_lda[:][y==2],bins=50,range=Xrange)
 h3,b3=np.histogram(X_lda[:][y==3],bins=50,range=Xrange)
 
 
-ax.bar(b1[:-1],h1,width=b1[1]-b1[0],color='blue')
-ax.bar(b2[:-1],h2,width=b2[1]-b2[0],color='red',bottom=h1)
-ax.bar(b3[:-1],h3,width=b3[1]-b3[0],color='yellow',bottom=h1+h2)
+#ax.bar(b1[:-1],h1,width=b1[1]-b1[0],color='blue')
+#ax.bar(b2[:-1],h2,width=b2[1]-b2[0],color='red',bottom=h1)
+#ax.bar(b3[:-1],h3,width=b3[1]-b3[0],color='yellow',bottom=h1+h2)
+ax.plot(b1[:-1],h1,'b')
+ax.plot(b2[:-1],h2,'r')
+ax.plot(b3[:-1],h3,'y')
 fig.savefig("output/%s_LDA.png" % (comp))
 
+dataPoints["LDA_2"]["1"]=X_lda[:][y==1].tolist()
+dataPoints["LDA_2"]["2"]=X_lda[:][y==2].tolist()
+dataPoints["LDA_2"]["X"]=X_lda[:][y==3].tolist()
 
 def plot_step_lda():
 
@@ -419,12 +454,18 @@ fig.savefig("output/%s_FormELO_X.png" % comp.replace('_',''))
 
 # In[27]:
 
-def makeELOHist(key,nbins=50):
+def makeELOHist(key,nbins=50,xmin=None,xmax=None):
 
-    xmin = min([teamDict[i].get_ranking(key) for i in seasonTeams])
-    xmax = max([teamDict[i].get_ranking(key) for i in seasonTeams])
+    #xmin = min([teamDict[i].get_ranking(key) for i in seasonTeams])
+    #xmax = max([teamDict[i].get_ranking(key) for i in seasonTeams])
 
-    Xrange=(np.floor(xmin-xmax),np.ceil(xmax-xmin))
+    if not xmin:
+        xmin = np.floor(min(dataPoints[key]["1"]+dataPoints[key]["2"]+dataPoints[key]["X"]))
+    
+    if not xmax:
+        xmax = np.ceil(max(dataPoints[key]["1"]+dataPoints[key]["2"]+dataPoints[key]["X"]))
+
+    Xrange=(xmin,xmax)
     #Xrange=(-3000,3000)
 
     print Xrange
@@ -451,7 +492,7 @@ def makeELOHist(key,nbins=50):
     _hX,_b=np.histogram(dataPoints[key]["X"],nbins,range=Xrange)
     _hX = smoothing(_hX)
     ax.bar(_b[:-1],_hX,width=_b[1]-_b[0],color="yellow",bottom=_h1+_h2)
-    print sum(_h1),sum(_h2),sum(_hX)
+    #print sum(_h1),sum(_h2),sum(_hX)
 
     fig.savefig("output/%s_Hist_%s.png" % (comp.replace('_',''),key))
     return (_h1,_h2,_hX,_b)
@@ -487,12 +528,13 @@ def makeELOFit(key,htup):
     return (popt1,popt2)
     #print popt2,pcov2
 
-for k in ["ELO_h","ELO_b","ELO_g","ELO_g2"]:
+for k in ["ELO_h","ELO_b","ELO_g","ELO_g2","LDA_2","Form","Form_2"]:
     print "Brier Score %s: %g+/-%g" % (k, np.mean(brierScores[k]), np.std(brierScores[k]))
     print "Pseudo Likelihood %s: %g" % (k, gmean(pseudoLikelihood[k]))
+    print "Success Rate %s: %g" % (k, np.mean(successRate[k]))
     success = False
     nbins=50
-    while not success:
+    while not success and nbins:
         try:
             htup = makeELOHist(k,nbins)
             ptup = makeELOFit(k, htup)
@@ -503,10 +545,16 @@ for k in ["ELO_h","ELO_b","ELO_g","ELO_g2"]:
 
 # In[6]:
 
-
-
-
-# In[ ]:
+#success = False
+#nbins=50
+#while not success:
+#    try:
+#        htup = makeELOHist("LDA_2",nbins,-3.,3.)
+#        ptup = makeELOFit("LDA_2", htup)
+#        print 'fitDict["%s"]["%s"] = [%s,%s]' % (comp.replace('_',''),"LDA_2",list(ptup[0]),list(ptup[1]))
+#        success = True            
+#    except:
+#         nbins/=2# In[ ]:
 
 
 

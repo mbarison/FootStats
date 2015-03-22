@@ -9,14 +9,20 @@ import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-def updateELO(t,r,key,func):
-    eH0 = t[r["HomeTeam"]][key][-1]
-    eA0 = t[r["AwayTeam"]][key][-1]
+from Team import Team
+from Match  import Match
 
-    eH,eA = func(r, eH0, eA0)     
+def updateELO(match,tD,key,func):
+    tH = tD[match.get_home_team()]
+    tA = tD[match.get_away_team()]
+    eH0 = tH.get_ranking(key)
+    eA0 = tA.get_ranking(key)
+
+
+    eH,eA = func(match, eH0, eA0)     
     #eH,eA = calcELO_b(r, eH0, eA0) 
-    t[r["HomeTeam"]][key].append(eH)
-    t[r["AwayTeam"]][key].append(eA)
+    tH.update_ranking(key,eH)
+    tA.update_ranking(key,eA)
     return (eH,eA)
 
 class CompetitionStats(object):     
@@ -47,12 +53,15 @@ class CompetitionStats(object):
         self._teamDict = {}
         
         for k in fitDict[league].keys():
-            if self._old_data.has_key("Dummy"):
-                self._emptyDict[k] = [self._old_data["Dummy"]]
-            else:
-                dem = sorted([v[k] for v in self._old_data.values()])[:3]
-                val = sum(dem)/3.
-                self._emptyDict[k] = [val]
+            try:
+                if self._old_data.has_key("Dummy"):
+                    self._emptyDict[k] = [self._old_data["Dummy"]]
+                else:
+                    dem = sorted([v[k] for v in self._old_data.values()])[:3]
+                    val = sum(dem)/3.
+                    self._emptyDict[k] = [val]
+            except:
+                pass
         
         self._Reader = csv.DictReader(self._csvFile)
         
@@ -75,40 +84,33 @@ class CompetitionStats(object):
         for r in self._Reader:
             self._games+=1
                 
-            if not self._teamDict.has_key(r["HomeTeam"]):
-                self._teamDict[r["HomeTeam"]] = deepcopy(self._emptyDict)
-                if self._old_data.has_key(r["HomeTeam"]):
+            match = Match(r)
+                
+            homeTeam = match.get_home_team()
+            awayTeam = match.get_away_team()
+                
+                
+            if not self._teamDict.has_key(homeTeam):
+                self._teamDict[homeTeam] = Team(homeTeam, self._league)
+                if self._old_data.has_key(homeTeam):
                     for k in fitDict[self._league].keys():
-                        print "!!!!", r["HomeTeam"], self._teamDict[r["HomeTeam"]]
-                        self._teamDict[r["HomeTeam"]][k] = [self._old_data[r["HomeTeam"]][k]]
-            if not self._teamDict.has_key(r["AwayTeam"]):
-                self._teamDict[r["AwayTeam"]] = deepcopy(self._emptyDict)
-                if self._old_data.has_key(r["AwayTeam"]):
+                        try:
+                            self._teamDict[homeTeam].update_ranking(k,self._old_data[homeTeam][k])
+                        except:
+                            pass
+            if not self._teamDict.has_key(awayTeam):
+                self._teamDict[awayTeam] = Team(awayTeam, self._league)
+                if self._old_data.has_key(awayTeam):
                     for k in fitDict[self._league].keys():
-                        self._teamDict[r["AwayTeam"]][k] = [self._old_data[r["AwayTeam"]][k]]
+                        try:
+                            self._teamDict[awayTeam].update_ranking(k,self._old_data[awayTeam][k])
+                        except:
+                            pass
              
-            self._teamDict[r["HomeTeam"]]["homeGoals"].append(int(r["FTHG"]))
-            self._teamDict[r["AwayTeam"]]["awayGoals"].append(int(r["FTAG"]))
-            self._teamDict[r["HomeTeam"]]["homeAgainst"].append(int(r["FTAG"]))  
-            self._teamDict[r["AwayTeam"]]["awayAgainst"].append(int(r["FTHG"]))
-               
-            self._teamDict[r["HomeTeam"]]["goalsFor"].append(int(r["FTHG"]))
-            self._teamDict[r["HomeTeam"]]["goalsAgainst"].append(int(r["FTAG"]))            
-            self._teamDict[r["AwayTeam"]]["goalsFor"].append(int(r["FTAG"]))
-            self._teamDict[r["AwayTeam"]]["goalsAgainst"].append(int(r["FTHG"])) 
-            
-            if int(r["FTHG"]) > int(r["FTAG"]):
-                self._teamDict[r["HomeTeam"]]["gameResults"].append(3)
-                self._teamDict[r["AwayTeam"]]["gameResults"].append(0)
-                res="1"
-            elif int(r["FTHG"]) < int(r["FTAG"]):
-                self._teamDict[r["HomeTeam"]]["gameResults"].append(0)
-                self._teamDict[r["AwayTeam"]]["gameResults"].append(3)
-                res="2"
-            else:
-                self._teamDict[r["HomeTeam"]]["gameResults"].append(1)
-                self._teamDict[r["AwayTeam"]]["gameResults"].append(1)
-                res="X"
+            self._teamDict[homeTeam].add_match(match)
+            self._teamDict[awayTeam].add_match(match)
+             
+            if match.get_result() == "X":
                 self._draw_actu+=1    
                 
                     
@@ -116,13 +118,10 @@ class CompetitionStats(object):
             
             #self.o_f.write("<tr><td>%(HomeTeam)s</td>%(AwayTeam)s</td><td>%(FTHG)d</td>><td>%(FTAG)d</td><td>ELO_h A</td><td>ELO_b A</td><td>ELO_g A</td><td>ELO_g2 A</td><td>ELO_h B</td><td>ELO_b B</td><td>ELO_g B</td><td>ELO_g2 B</td></tr>\n")
 
-            
-  
-            
-            updateELO(self._teamDict,r,"ELO_h",calcELO_h)
-            updateELO(self._teamDict,r,"ELO_b",calcELO_b)
-            updateELO(self._teamDict,r,"ELO_g",calcELO_g)
-            updateELO(self._teamDict,r,"ELO_g2",calcELO_g2)
+            updateELO(match,self._teamDict,"ELO_h",calcELO_h)
+            updateELO(match,self._teamDict,"ELO_b",calcELO_b)
+            updateELO(match,self._teamDict,"ELO_g",calcELO_g)
+            updateELO(match,self._teamDict,"ELO_g2",calcELO_g2)
             
             #r["ELOH"] = self._teamDict[r["HomeTeam"]]["ELO"][-1]
             #r["ELOA"] = self._teamDict[r["AwayTeam"]]["ELO"][-1]
@@ -143,7 +142,10 @@ class CompetitionStats(object):
             
              
             for k in fitDict[self._league].keys():
-                print "%s %s (%g-->%g) %s (%g-->%g)" % (r["HomeTeam"],k,self._teamDict[r["HomeTeam"]][k][-2],self._teamDict[r["HomeTeam"]][k][-1],r["AwayTeam"],self._teamDict[r["AwayTeam"]][k][-2],self._teamDict[r["AwayTeam"]][k][-1]) 
+                try:
+                    print "%s %s (%g-->%g) %s (%g-->%g)" % (homeTeam,k,self._teamDict[homeTeam].get_full_ranking(k)[-2],self._teamDict[homeTeam].get_full_ranking(k)[-1],awayTeam,self._teamDict[awayTeam].get_full_ranking(k)[-2],self._teamDict[awayTeam].get_full_ranking(k)[-1]) 
+                except:
+                    pass
          
             print "\n\n"
          
@@ -161,7 +163,7 @@ class CompetitionStats(object):
         ax = fig.add_subplot(111, title="%s ELO"%team)
         
         for k in fitDict[self._league].keys():
-            y = _d[k]
+            y = _d.get_full_ranking(k)
             x = np.linspace(0,1,len(y))
             ax.plot(x,y)
         
@@ -176,7 +178,7 @@ class CompetitionStats(object):
         canvas = FigureCanvas(fig)
         
         
-        _g = _d["goalsFor"]
+        _g = _d.get_goals_for_full()
         
         avg = 1.*sum(_g)/len(_g)
         
@@ -208,7 +210,7 @@ class CompetitionStats(object):
         canvas = FigureCanvas(fig)
         
         
-        _g = _d["goalsAgainst"]
+        _g = _d.get_goals_against_full()
         
         avg = 1.*sum(_g)/len(_g)
         
@@ -240,8 +242,8 @@ class CompetitionStats(object):
         fig = Figure(dpi=72)
         canvas = FigureCanvas(fig)
         
-        _g = _d["goalsFor"]
-        _a = _d["goalsAgainst"]
+        _g = _d.get_goals_for_full()
+        _a = _d.get_goals_against_full()
         
         _f = []
         for i in range(0,len(_g)-6):
@@ -263,17 +265,17 @@ class CompetitionStats(object):
         return
     
     def finalReport(self):       
-        ks = sorted(self._teamDict.keys(), key=lambda x:self._teamDict[x]["ELO_h"][-1],reverse=True)
+        ks = sorted(self._teamDict.keys(), key=lambda x:self._teamDict[x].get_ranking("ELO_h"),reverse=True)
 
         for i in ks:
-            games = len(self._teamDict[i]["gameResults"])
-            wins     = len(filter(lambda x:x==3, self._teamDict[i]["gameResults"]))
-            draws    = len(filter(lambda x:x==1, self._teamDict[i]["gameResults"]))
-            losses   = len(filter(lambda x:x==0, self._teamDict[i]["gameResults"]))
-            elo      = self._teamDict[i]["ELO_h"][-1]
-            points   = sum(self._teamDict[i]["gameResults"])
-            goals_for     = sum(self._teamDict[i]["homeGoals"])+sum(self._teamDict[i]["awayGoals"])
-            goals_against = sum(self._teamDict[i]["homeAgainst"])+sum(self._teamDict[i]["awayAgainst"])
+            games    = self._teamDict[i].get_games_played()
+            wins     = self._teamDict[i].get_wins()
+            draws    = self._teamDict[i].get_draws()
+            losses   = self._teamDict[i].get_losses()
+            elo      = self._teamDict[i].get_ranking("ELO_h")
+            points   = self._teamDict[i].get_points()
+            goals_for     = self._teamDict[i].get_goals_for()
+            goals_against = self._teamDict[i].get_goals_against()
             #self.o_f.write("%16s\t%d\t%d\t%d\t%d\t%d\t%d\n" % (i,points,games,wins,draws,losses,elo))
             self.o_f.write("<h2>%s</h2>\n" % i)
             self.o_f.write("<table border=0>")
@@ -284,7 +286,10 @@ class CompetitionStats(object):
             self.o_f.write('<img src="%s_Goals.png" width="400">\n' % i)
             self.o_f.write('<img src="%s_GoalsAgainst.png" width="400">\n' % i)
             self.o_f.write('<img src="%s_Form.png" width="400">\n' % i)
-            self.makeELOPlot(i)
+            try:
+                self.makeELOPlot(i)
+            except:
+                pass
             self.makeGoalsPlot(i)
             self.makeGoalsAgainstPlot(i)
             self.makeFormPlot(i)

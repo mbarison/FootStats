@@ -1,5 +1,8 @@
 import re
 
+from Match import Match
+from datetime import datetime
+
 class BetPredictor(object):
     compDict = {"SerieA"      : "Italian_Serie_A",
                 "Premiership" : "English_Premier_League",
@@ -46,10 +49,12 @@ class BetPredictor(object):
                 teamA = self.teamChange[teamA]
             if teamB in self.teamChange.keys():
                 teamB = self.teamChange[teamB]  
-            r = {"ELOH" : self._teamDict[teamA]["ELO_h"][-1], "ELOA" : self._teamDict[teamB]["ELO_h"][-1]}
+            #r = {"ELOH" : self._teamDict[teamA].get_ranking("ELO_h"), "ELOA" : self._teamDict[teamB].get_ranking("ELO_h")}
+            r = {"HomeTeam" : teamA, "AwayTeam" : teamB, "Date" : datetime.today().strftime("%d/%M/%y")}
+            fakematch = Match(r)
             print "--------\n"
             for p in self._predictors:
-                print "%s: %s -- %s %s (%g %g)" % (p.name, teamA,teamB, p.predict(r), r["ELOH"], r["ELOA"])
+                print "%s: %s -- %s %s (%g %g)" % (p.name, teamA,teamB, p.predict(fakematch), self._teamDict[teamA].get_ranking("ELO_h"), self._teamDict[teamB].get_ranking("ELO_h"))
      
 
         return
