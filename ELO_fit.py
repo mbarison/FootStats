@@ -1,9 +1,12 @@
+#!/usr/bin/env python
 
 import numpy as np
 from scipy.stats import gmean
 from matplotlib import pyplot as plt
 
 import csv
+import re
+import sys
 import os
 import datetime
 import cPickle
@@ -39,7 +42,18 @@ brierScores = { "ELO_h" : [],
 successRate = deepcopy(brierScores)
 pseudoLikelihood = deepcopy(brierScores)
 
-comp = "Bundesliga"
+if len(sys.argv) > 1:
+    comp = sys.argv[1]
+else:
+    comp = "Bundesliga"
+    
+if len(sys.argv) > 2:
+    lastyear = int(sys.argv[2])
+else:
+    lastyear = 2013   
+
+startyear=0 #lastyear-4
+    
 l = sorted(glob.glob("data/%s*.csv" % comp))
 print l
 
@@ -121,7 +135,11 @@ teamDict={}
 
 emptyDict = { "totalPoints" : 0, "gameResults" : [], "topHalf" : [], "bottomHalf" : [], "homeGoals" : [], "awayGoals" : [] }
 
-for fn in l[:-1]:
+for fn in l:
+    
+    if int(re.findall("[0-9]+",fn)[0]) > lastyear or int(re.findall("[0-9]+",fn)[0]) <  startyear:
+        continue
+    
     f=open(fn)
     _Reader = csv.DictReader(f)
     
@@ -172,15 +190,19 @@ for fn in l[:-1]:
         dataPoints["Form"][match.get_result()].append(formDiff)
         dataPoints["Form_2"][match.get_result()].append(form2Diff)
         
-    #elo_sum = sum([teamDict[i].get_ranking("ELO_h") for i in seasonTeams])
-    #print "ELO_h Sum:", elo_sum
-    # rescale
-    #for i in seasonTeams:
-    #    teamDict[i]["ELO_h"].append(teamDict[i]["ELO_h"][-1]*2e4/elo_sum)
+    elo_sum = sum([teamDict[i].get_ranking("ELO_h") for i in seasonTeams])
+    print "ELO_h Sum:", elo_sum
     
-    #for i in teamDict.keys():
-    #    if not i in seasonTeams:
-    #        teamDict[i]["ELO_h"] += [teamDict[i]["ELO_h"][-1]] * (season_games/len(seasonTeams))
+    # rescale
+    for i in seasonTeams:
+        rnk = teamDict[i].get_ranking("ELO_h")
+        teamDict[i].update_ranking("ELO_h",rnk*2e4/elo_sum)
+    
+    for i in teamDict.keys():
+        if not i in seasonTeams:
+            for j in xrange(season_games/len(seasonTeams)):
+                rnk = teamDict[i].get_ranking("ELO_h")
+                teamDict[i].update_ranking("ELO_h",rnk)
     
     f.close()
 print "\n\n"
@@ -225,14 +247,14 @@ ax.bar(b2[:-1],h2,width=b2[1]-b2[0],color='red',bottom=h1)
 ax.bar(b3[:-1],h3,width=b3[1]-b3[0],color='yellow',bottom=h1+h2)
 fig.savefig("output/%s_PCA.png" % (comp))
 
-#o_f = open("data/%s_%d_ELO.pickle" % (comp.replace('_',''),2013), "w")
-#d={}
-#for k,v in teamDict.iteritems():
-#    d[k]={}
-#    for j in dataPoints.keys():
-#        d[k][j]=v[j][-1]
-#cPickle.dump(d,o_f)
-#o_f.close()   
+o_f = open("data/%s_%d_ELO.pickle" % (comp,lastyear), "w")
+d={}
+for k,v in teamDict.iteritems():
+    d[k]={}
+    for j in dataPoints.keys():
+        d[k][j]=v.get_ranking(j)
+cPickle.dump(d,o_f)
+o_f.close()   
 
 print "\n\n"
 #o_f = open("%s_%d_ELO.pickle" % (comp.replace('_',''),2013), "w")

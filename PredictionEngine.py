@@ -28,7 +28,8 @@ class PredictionEngine(object):
                 'Premiership' : 0.2,
                 'Bundesliga'  : 0.1,
                 'Liga'        : 0.15,
-                'Ligue'       : 0.15
+                'Ligue'       : 0.15,
+                'LigaP'       : 0.08,
                 }
         
     def __init__(self,league,year):
@@ -68,6 +69,15 @@ class PredictionEngine(object):
             except:
                 pass
         
+        if self._year == 2014 and self._league == 'SerieA':
+            self._old_data["Parma"]["ELO_h"] /= 2.
+            self._old_data["Parma"]["ELO_g2"] /= 2.
+            
+            
+        if self._year == 2014 and self._league == 'Bundesliga':
+            self._old_data["Dortmund"]["ELO_h"] /= 2.
+            self._old_data["Dortmund"]["ELO_g2"] /= 2.
+
         #if self._old_data.has_key("Dummy"):
         #    self._emptyDict["ELO"] = [self._old_data["Dummy"]]
         #else:

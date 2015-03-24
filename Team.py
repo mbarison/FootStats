@@ -8,6 +8,7 @@ class Team(object):
                   'Bundesliga'   : {'W' : np.array([0.957968, -0.286874]), 'sig' : np.array([[201.135, 0.],[0., 11.716]]), 'mu' : np.array([4.90503, -0.745565])},
                   'Ligue'        : {'W' : np.array([0.95486, -0.297056]), 'sig' : np.array([[160.256, 0.],[0., 8.83803]]), 'mu' : np.array([5.36154, -0.575283])},
                   'Premiership'  : {'W' : np.array([0.9693,-0.246]), 'sig' : np.array([[260.122, 0.],[0.,14.2594]]), 'mu' : np.array([5.47904,-0.854551])},
+                  'LigaP'         : {'W' : np.array([0.983196, -0.182554]), 'sig' : np.array([[190.016, 0.],[0., 7.19533]]), 'mu' : np.array([3.29343, -0.335658])},
                   }
      
     def __init__(self,nm,comp):

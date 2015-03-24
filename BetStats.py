@@ -14,13 +14,12 @@ from BetPredictor import *
 
 from matplotlib import pyplot as plt
 
-year = 2014
-
 compDict = {"SerieA"      : 0.2,
             "Premiership" : 0.2,
             "Bundesliga"  : 0.17,
             "Liga"        : 0.15,
-            "Ligue"       : 0.11}
+            "Ligue"       : 0.11,
+            "LigaP"       : 0.08}
 
 
 if len(sys.argv) > 1:
@@ -33,6 +32,11 @@ else:
     comp = 'Liga'; league_thresh = 0.15
     #comp = 'Ligue'; league_thresh = 0.11
     #comp = 'LigaP'; league_thresh = 0.08
+
+if len(sys.argv) > 2:
+    year = int(sys.argv[2])
+else:
+    year = 2014
 
 pE = PredictionEngine(comp, year)
 
