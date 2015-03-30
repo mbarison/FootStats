@@ -2,6 +2,9 @@ import re
 
 from Match import Match
 from datetime import datetime
+from BetBrainReader import BetBrainReader
+
+from commonUtils import teamChange
 
 class BetPredictor(object):
     compDict = {"SerieA"      : "Italian_Serie_A",
@@ -9,28 +12,9 @@ class BetPredictor(object):
                 "Bundesliga"  : "German_Bundesliga",
                 "Liga"        : "Spanish_La_Liga_Primera",
                 "Ligue"       : "French_Ligue_1",}
-    
-    teamChange = {"AC Milan"         : "Milan",
-                  "Inter Milan"      : "Inter",
-                  "Man Utd"          : "Man United",
-                  "Hertha Berlin"    : "Hertha",
-                  "Bayer Leverkusen" : "Leverkusen",
-                  "Eintracht Frankfurt" : "Ein Frankfurt",
-                  "Mainz 05"         : "Mainz",
-                  "Borussia Dortmund": "Dortmund",
-                  "Hannover 96"      : "Hannover",
-                  "Borussia M'gladbach": "M'gladbach",
-                  'Rayo Vallecano'   : "Vallecano",
-                  'Deportivo La Coruna' : "La Coruna",
-                  'Real Sociedad'    : "Sociedad",
-                  'Athletic Bilbao'  : 'Ath Bilbao',
-                  "Atletico Madrid"  : "Ath Madrid",
-                  "Celta Vigo"       : "Celta",
-                  'Evian'            : 'Evian Thonon Gaillard',
-                  'Paris Saint-Germain' : 'Paris SG',
-                  'Espanyol'         : 'Espanol'}
-    
+            
     def __init__(self, league, teamDict):
+        self._league = league
         self._inFile = open("data/%s.html" % self.compDict[league])
         self._ptn = re.compile("mkt_namespace\">(.*) &nbsp;.*v.*&nbsp;(.*?)<")
         self._teamDict = teamDict
@@ -54,7 +38,28 @@ class BetPredictor(object):
             fakematch = Match(r)
             print "--------\n"
             for p in self._predictors:
-                print "%s: %s -- %s %s (%g %g)" % (p.name, teamA,teamB, p.predict(fakematch), self._teamDict[teamA].get_ranking("ELO_h"), self._teamDict[teamB].get_ranking("ELO_h"))
+                print "%s %s: %s -- %s %s (%g %g)" % (fakematch.get_date(), p.name, teamA,teamB, p.predict(fakematch), self._teamDict[teamA].get_ranking("ELO_g2"), self._teamDict[teamB].get_ranking("ELO_g2"))
      
 
         return
+    
+    def predictMatchesNew(self):
+        bbr=BetBrainReader("data/BetBrain_%s.html" % self._league)
+
+        matches = bbr.getMatches()
+        
+        for r in matches:
+            m = Match(r)
+            print "\n--------"
+            print m.get_date().strftime('%d %B %Y'), m.get_home_team(), m.get_away_team()
+            for p in self._predictors:
+                res = p.predict(m)
+                try:
+                    bookie = r["Bookies"][(res=="X")+(2*res=="2")]
+                except:
+                    bookie = None
+                print "%s: %s -- %s %s Bet C$ %.2g at %s" % (p.name, m.get_home_team(), m.get_away_team(), res, p.bet, bookie)
+     
+
+        return   
+    

@@ -1,39 +1,21 @@
 from datetime import datetime
 from string import maketrans,translate
+from commonUtils import teamChange
 
-class Match(object):
-    teamChange = {"AC Milan"         : "Milan",
-                  "Inter Milan"      : "Inter",
-                  "Man Utd"          : "Man United",
-                  "Hertha Berlin"    : "Hertha",
-                  "Bayer Leverkusen" : "Leverkusen",
-                  "Eintracht Frankfurt" : "Ein Frankfurt",
-                  "Mainz 05"         : "Mainz",
-                  "Borussia Dortmund": "Dortmund",
-                  "Hannover 96"      : "Hannover",
-                  "Borussia M'gladbach": "M'gladbach",
-                  'Rayo Vallecano'   : "Vallecano",
-                  'Deportivo La Coruna' : "La Coruna",
-                  'Real Sociedad'    : "Sociedad",
-                  'Athletic Bilbao'  : 'Ath Bilbao',
-                  "Atletico Madrid"  : "Ath Madrid",
-                  "Celta Vigo"       : "Celta",
-                  'Evian'            : 'Evian Thonon Gaillard',
-                  'Paris Saint-Germain' : 'Paris SG',}
-    
+class Match(object):    
     rot1X2 = maketrans("HDA","1X2") 
     
     def __init__(self, d):
         try:
-            self._date = datetime.strptime(d["Date"],"%d/%M/%y")
+            self._date = datetime.strptime(d["Date"],"%d/%m/%y")
         except:
-            self._date = datetime.strptime(d["Date"],"%d/%M/%Y")
-        if self.teamChange.has_key(d["HomeTeam"]):
-            self._homeTeam = self.teamChange[d["HomeTeam"]]
+            self._date = datetime.strptime(d["Date"],"%d/%m/%Y")
+        if teamChange.has_key(d["HomeTeam"]):
+            self._homeTeam = teamChange[d["HomeTeam"]]
         else:
             self._homeTeam = d["HomeTeam"]
-        if self.teamChange.has_key(d["AwayTeam"]):
-            self._awayTeam = self.teamChange[d["AwayTeam"]]
+        if teamChange.has_key(d["AwayTeam"]):
+            self._awayTeam = teamChange[d["AwayTeam"]]
         else:
             self._awayTeam = d["AwayTeam"]     
         try:    

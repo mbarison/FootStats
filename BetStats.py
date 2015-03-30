@@ -40,28 +40,28 @@ else:
 
 pE = PredictionEngine(comp, year)
 
-predictors = [ Predictor(league_thresh),
+predictors = [ #Predictor(league_thresh),
                B365Predictor(),
                WHillPredictor(),
                PinnaclePredictor(),
-               HomePredictor(),
-               AwayPredictor(),
-               DrawPredictor(),
-               RandomPredictor(),
+               #HomePredictor(),
+               #AwayPredictor(),
+               #DrawPredictor(),
+               #RandomPredictor(),
                #ELOPredictor(comp),
                #KellyPredictor(comp)
                ]
 
-predictors.append(ELOPredictor(comp,"ELO_h"))
-predictors[-1].set_name("ELO_h")
+#predictors.append(ELOPredictor(comp,"ELO_h"))
+#predictors[-1].set_name("ELO_h")
 predictors.append(ELOPredictor(comp,"ELO_g2"))
 predictors[-1].set_name("ELO_g2")
-predictors.append(KellyPredictor(comp,"ELO_h"))
-predictors[-1].set_name("Kelly (ELO_h)")
+#predictors.append(KellyPredictor(comp,"ELO_h"))
+#predictors[-1].set_name("Kelly (ELO_h)")
 predictors.append(KellyPredictor(comp,"ELO_g2"))
 predictors[-1].set_name("Kelly (ELO_g2)")
-predictors.append(KellyPredictor2(comp,"ELO_g2"))
-predictors[-1].set_name("Kelly2 (ELO_g2)")
+#predictors.append(KellyPredictor2(comp,"ELO_g2"))
+#predictors[-1].set_name("Kelly2 (ELO_g2)")
 
 cmap = iter(plt.cm.Paired(numpy.linspace(0,1,len(predictors))))
 
@@ -76,8 +76,9 @@ pE.finalReport()
 pE.finalPlots()
 
 bP = BetPredictor(comp, pE.dumpTeamDict())
-bP.addPredictor(predictors[0])
-bP.predictMatches()
+#bP.addPredictor(predictors[0])
+bP.addPredictor(predictors[-2])
+bP.predictMatchesNew()
 
     
 

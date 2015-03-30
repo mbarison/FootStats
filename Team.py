@@ -1,4 +1,5 @@
 from Match import Match
+from ELO import brierScore
 
 import numpy as np
 
@@ -16,12 +17,25 @@ class Team(object):
         self._matches = []
         self._rankings = {"LDA_2" : [0.]}
         self._league = comp
+        self._probs = []
         return 
-    
+
+    def get_name(self):
+        return self._name
     
     def add_match(self, m):
         self._matches.append(m)
+        #print "%s Form %d %d" % (self._name, self.get_form(),sum(self.get_goals_for_full()[-7:-1])-sum(self.get_goals_against_full()[-7:-1]))
+        #if True:
+        #    print "DEBUG %s added match, result %d-%d %s %s" % (self._name, m.get_home_goals(), m.get_away_goals(), m.get_home_team(), m.get_away_team())
+        #    print self.get_goals_for_full(), self.get_goals_against_full()
+        #    print [(i.get_home_team(),i.get_home_goals()) for i in self._matches]
+        #    print [(i.get_home_team(),i.get_home_goals()) for i in self._matches if i.get_home_team()==self._name]
+        #    print [x.get_home_goals() for x in self._matches if x.get_home_team()==self._name]
         return
+    
+    def add_probs(self, probs):
+        self._probs.append(probs)
     
     def get_ranking(self, key):
         # First call returns default ranking
@@ -72,6 +86,12 @@ class Team(object):
          
         return (goalsFor+shotsFor+shotsTFor)-(goalsAgainst+shotsAgainst+shotsTAgainst)    
     
+    def get_matches(self):
+        return self._matches
+    
+    def get_probs(self):
+        return self._probs
+    
     def get_games_played(self):
         return len(self._matches)
     
@@ -105,6 +125,23 @@ class Team(object):
     def get_points(self):
         return (3*self.get_wins())+self.get_draws()
     
+    def get_points_full(self):
+        return map(lambda x:[0,3][x.get_result()=="1" and x.get_home_team()==self._name] +\
+                            [0,3][x.get_result()=="2" and x.get_away_team()==self._name] +\
+                            [0,1][x.get_result()=="X"], self._matches)
+    
+    def get_points_expected(self):
+        return map(lambda x:[0,3*x.getStraightProbs("BetbrainAverage")[0]][x.get_home_team()==self._name] +\
+                            [0,3*x.getStraightProbs("BetbrainAverage")[2]][x.get_away_team()==self._name] +\
+                            [0,1*x.getStraightProbs("BetbrainAverage")[1]][x.get_result()=="X"], self._matches)
+    
+    
+    def get_points_expected_ELO_g2(self):
+        mp = zip(self._matches,self._probs)        
+        return map(lambda x:[0,3*x[1][0]][x[0].get_home_team()==self._name] +\
+                            [0,3*x[1][2]][x[0].get_away_team()==self._name] +\
+                            [0,1*x[1][1]][x[0].get_result()=="X"], mp)
+                
     def get_goals_for_home(self):
         return sum([x.get_home_goals() for x in self._matches if x.get_home_team()==self._name])
     
@@ -115,12 +152,11 @@ class Team(object):
         return self.get_goals_for_home() + self.get_goals_for_away()
     
     def get_goals_for_full(self):
-        return [x.get_away_goals() for x in self._matches if x.get_away_team()==self._name] +\
-            [x.get_away_goals() for x in self._matches if x.get_away_team()==self._name]
+        return map(lambda x:[0,x.get_home_goals()][x.get_home_team()==self._name]+[0,x.get_away_goals()][x.get_away_team()==self._name], self._matches)
             
     def get_goals_against_full(self):
-        return [x.get_away_goals() for x in self._matches if x.get_home_team()==self._name] +\
-            [x.get_home_goals() for x in self._matches if x.get_away_team()==self._name]
+        return map(lambda x:[0,x.get_home_goals()][x.get_away_team()==self._name]+[0,x.get_away_goals()][x.get_home_team()==self._name], self._matches)
+
     
     def get_goals_against_home(self):
         return sum([x.get_away_goals() for x in self._matches if x.get_home_team()==self._name])
@@ -154,4 +190,17 @@ class Team(object):
         
         self._rankings["LDA_2"].append(W.dot(x))
         
-        return self._rankings["LDA_2"][-1]
+        return self._rankings["LDA_2"][-1]    
+    
+    name = property(get_name, None, None, None)
+
+    def get_brier_score(self):
+        all_res   = self.get_matches()   
+        all_probs = self.get_probs()
+
+        bs=[]
+        for m,p in zip(all_res,all_probs):
+            _rezs = np.array([m.get_result()=="1",m.get_result()=="X",m.get_result()=="2"])
+            bs.append(brierScore(p,_rezs))
+            
+        return np.mean(bs)

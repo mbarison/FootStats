@@ -66,11 +66,11 @@ class Predictor():
         if self.last_pred == res:
             print "%s bet: %g, win: %g, gain: %g" % (self.name, self.bet, odd*self.bet, (odd-1.)*self.bet)
             self.correct_preds += 1
-            self.pot.append(self.pot[-1]+((odd-1.)*self.bet))
+            self.pot.append((odd-1.)*self.bet)
             self.wins.append(odd*self.bet)
             self.winning_odds.append(odd)
         else:
-            self.pot.append(self.pot[-1]-self.bet)
+            self.pot.append(-self.bet)
             
         if self.probs:
             p = np.array(self.probs)
@@ -212,6 +212,7 @@ class KellyPredictor(Predictor):
         b365 = match.getStraightOdds("Bet365")
         ps   = match.getStraightOdds("PinnacleSports")
         wh   = match.getStraightOdds("WilliamHill")
+                
         odds_1 = max([b365[0],ps[0],wh[0]])
         odds_X = max([b365[1],ps[1],wh[1]])   
         odds_2 = max([b365[2],ps[2],wh[2]])
@@ -403,6 +404,8 @@ class DrawPredictor(Predictor):
         Predictor.__init__(self)
         self.name = "Draw"
         self.color = "black"
+        self.probs = [0.,1.,0.]
+        
     
     def predict(self,r):
         self.preds += 1
@@ -415,6 +418,7 @@ class HomePredictor(Predictor):
         Predictor.__init__(self)
         self.name = "Home"
         self.color = "purple"
+        self.probs = [1.,0.,0.]
     
     def predict(self,r):
         self.preds += 1
@@ -426,6 +430,7 @@ class AwayPredictor(Predictor):
         Predictor.__init__(self)
         self.name = "Away"
         self.color = "yellow"
+        self.probs = [0.,0.,1.]
     
     def predict(self,r):
         self.preds += 1
@@ -437,6 +442,7 @@ class RandomPredictor(Predictor):
         Predictor.__init__(self)
         self.name = "Random"
         self.color = "gray"
+        self.probs = [1./3,1./3,1./3]
     
     def predict(self,r):
         self.preds += 1
