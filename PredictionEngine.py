@@ -12,7 +12,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import gmean
 
-from correctionFactors import *
+#from correctionFactors import *
 from commonUtils import recomputeELO
 
 import itertools
@@ -64,8 +64,19 @@ class PredictionEngine(object):
         except:
             self._dataPoints = {"1" : [], "2" : [], "X" : [], "years" : []}  
         
-        self._teamDict = {}
+                # do a quick read to establish season teams
+        _Reader = csv.DictReader(self._csvFile)
         
+        for r in _Reader:
+            self._seasonTeams.add(r["HomeTeam"])
+            self._seasonTeams.add(r["AwayTeam"])
+        
+        del _Reader
+        
+        self._csvFile.seek(0)
+        
+        self._teamDict = {}
+                
         for k in fitDict[league].keys():
             try:
                 if self._old_data.has_key("Dummy"):
@@ -78,27 +89,25 @@ class PredictionEngine(object):
             except:
                 pass
         
-        # do a quick read to establish season teams
-        _Reader = csv.DictReader(self._csvFile)
-        
-        for r in _Reader:
-            self._seasonTeams.add(r["HomeTeam"])
-            self._seasonTeams.add(r["AwayTeam"])
-        
-        del _Reader
-        
-        self._csvFile.seek(0)
-        
-        #elo_sum = sum([i["ELO_g2"] for i in self._old_data.values()])+2*self._old_data["Dummy"]["ELO_g2"]
-        #print "ELO SUM", elo_sum
-        #for k,v in self._old_data.iteritems():
-        #    print k, v["ELO_g2"]
-        #    v["ELO_g2"] *= 2e4/elo_sum
-        
+        for i in self._seasonTeams:
+            if not self._old_data.has_key(i):
+                self._old_data[i] = self._old_data["Dummy"]
+
+        elo_sum = sum([self._old_data[k]["ELO_g2"] for k in  self._seasonTeams])
+        nteams = len(self._seasonTeams)
+        print "ELO SUM:", elo_sum
+        for k in  self._seasonTeams:
+            self._old_data[k]["ELO_g2"] *= (1e3*nteams)/elo_sum
+                
+        correctionFactors = cPickle.load(open("data/%s_CorrectionFactors.pickle" % self._league))
+        step = 3
         
         if self._year == 2014 and correctionFactors.has_key(self._league):
             for k,v in correctionFactors[self._league].iteritems():
-                self._old_data[k]["ELO_g2"] *= v    
+                print "Correcting step", step, k, np.prod(v[:step])  
+                self._old_data[k]["ELO_g2"] *= np.prod(v[:step])  
+        
+
 
 
         #if self._old_data.has_key("Dummy"):
@@ -230,7 +239,7 @@ class PredictionEngine(object):
             #if not self._year in self._dataPoints["years"]:
             #    self._dataPoints[res].append((eH0-eA0, scoreH-scoreA))    
                 
-            print "%s (%g-->%g) %s (%g-->%g)" % (homeTeam,self._teamDict[homeTeam].get_full_ranking("ELO_h")[-2],self._teamDict[homeTeam].get_full_ranking("ELO_h")[-1],awayTeam,self._teamDict[awayTeam].get_full_ranking("ELO_h")[-2],self._teamDict[awayTeam].get_full_ranking("ELO_h")[-1]) 
+            print "%s (%g-->%g) %s (%g-->%g)" % (homeTeam,self._teamDict[homeTeam].get_full_ranking("ELO_g2")[-2],self._teamDict[homeTeam].get_full_ranking("ELO_g2")[-1],awayTeam,self._teamDict[awayTeam].get_full_ranking("ELO_g2")[-2],self._teamDict[awayTeam].get_full_ranking("ELO_g2")[-1]) 
          
             print "\n\n"
          

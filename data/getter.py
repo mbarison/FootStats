@@ -4,6 +4,8 @@ import os
 import time
 import pickle
 import requests
+import pickle
+import selenium.webdriver 
 
 _lnk  = "http://www.football-data.co.uk/mmz4281/%0.2d%0.2d/%s.csv"  
 # D1 = Bundesliga, E0 = Premiership, SP1=Liga, F1=Ligue, SC0=Scottish Premiership
@@ -25,8 +27,14 @@ for k,_lega in leagues.iteritems():
                 os.system(_cmd)
                 time.sleep(1)
 
+driver = selenium.webdriver.Firefox()
+driver.get("http://www.betbrain.com")
 
-_cjar = open(os.path.expanduser("~/cookies.pkl"),'r')
+time.sleep(20)
+
+pickle.dump( driver.get_cookies() , open("cookies.pkl","wb"))
+
+_cjar = open("cookies.pkl",'r')
 _ck=pickle.load(_cjar)
 #_cjar.seek(0)
 #_cjar.truncate()

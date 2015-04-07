@@ -88,15 +88,15 @@ class CompetitionStats(object):
             self._old_data[k]["ELO_g2"] *= (1e3*nteams)/elo_sum
 
         
-        correctionFactors = cPickle.load(open("data/%s_CorrectionFactors.pickle" % self._league))
-        idx = 1
+        self._correctionFactors = cPickle.load(open("data/%s_CorrectionFactors.pickle" % self._league))
+        self._step = 3
         
-        print correctionFactors
+        print self._correctionFactors
                 
-        if self._year == 2014 and correctionFactors.has_key(self._league):
-            for k,v in correctionFactors[self._league].iteritems():
-                print "Correcting", k, np.prod(v[:idx])  
-                self._old_data[k]["ELO_g2"] *= np.prod(v[:idx])    
+        if self._year == 2014 and self._correctionFactors.has_key(self._league):
+            for k,v in self._correctionFactors[self._league].iteritems():
+                print "Correcting step", self._step, k, np.prod(v[:self._step])  
+                self._old_data[k]["ELO_g2"] *= np.prod(v[:self._step])    
                   
         
         self._csvFile.seek(0)
@@ -117,12 +117,7 @@ class CompetitionStats(object):
         #self.o_f.write("<h2>Matches</h2>\n")
         #self.o_f.write("<table border=0 cellpadding=5>")
         #self.o_f.write("<tr><th>Team A</th><th>Team B</th><th>Result</th><th>ELO_h A</th><th>ELO_b A</th><th>ELO_g A</th><th>ELO_g2 A</th><th>ELO_h B</th><th>ELO_b B</th><th>ELO_g B</th><th>ELO_g2 B</th></tr>\n")
- 
-        tempCorrFact = {self._league : {}}
-        for i in self._seasonTeams:
-            tempCorrFact[self._league][i] = []
-        
-        
+                
         for r in self._Reader:
             self._games+=1
                 
@@ -176,12 +171,12 @@ class CompetitionStats(object):
             #    dort.update_ranking("ELO_g2",new_rank)  
             #    print '#RECOMPUTE (%d):\ncorrectionFactors["%s"]["%s"] = %g' % (nmatch, self._league, bad_team, new_rank/old_rank)
              
-            _corrH = check_and_recomputeELO(self._teamDict[homeTeam],self._league)
+            _corrH = check_and_recomputeELO(self._teamDict[homeTeam],self._league,self._step)
             if _corrH:
-                tempCorrFact[self._league][homeTeam].append(_corrH)
-            _corrA = check_and_recomputeELO(self._teamDict[awayTeam],self._league)
+                self._correctionFactors[self._league][homeTeam].append(_corrH)
+            _corrA = check_and_recomputeELO(self._teamDict[awayTeam],self._league,self._step)
             if _corrA:
-                tempCorrFact[self._league][awayTeam].append(_corrA)
+                self._correctionFactors[self._league][awayTeam].append(_corrA)
                 
             """    
             if self._teamDict[homeTeam].get_games_played()%10 == 0:
@@ -243,8 +238,12 @@ class CompetitionStats(object):
         
         #self.o_f.write("</table>\n") 
         
+        for k1,v1 in self._correctionFactors.iteritems():
+            for k2, v2 in v1.iteritems():
+                self._correctionFactors[k1][k2] = v2[:self._step]
+        
         o_f = open("data/%s_CorrectionFactors.pickle" % self._league, "w")
-        cPickle.dump(tempCorrFact,o_f)
+        cPickle.dump(self._correctionFactors,o_f)
         o_f.close()
                     
         return
@@ -378,7 +377,7 @@ class CompetitionStats(object):
         
         cnt = 1
         while (10*cnt) < len(x):
-            ax.axvline(x[(10*cnt)],color='black')
+            ax.axvline(x[(10*cnt)-1],color='black')
             cnt += 1
         
         ax.fill_between(x, exp_g2_lo, exp_g2_hi, facecolor='r', alpha=0.25)

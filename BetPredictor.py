@@ -58,7 +58,7 @@ class BetPredictor(object):
                     bookie = r["Bookies"][(res=="X")+(2*res=="2")]
                 except:
                     bookie = None
-                print "%s: %s -- %s %s Bet C$ %.2g at %s" % (p.name, m.get_home_team(), m.get_away_team(), res, p.bet, bookie)
+                print "%s: %s -- %s %s Bet C$ %.3g at %s" % (p.name, m.get_home_team(), m.get_away_team(), res, p.bet, bookie)
      
 
         return   

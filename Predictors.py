@@ -302,7 +302,21 @@ class KellyPredictor2(KellyPredictor):
         print "%s Pred: %s (k_1:%.3g, k_X:%.3g, k_2:%.3g)" % (self.name,self.last_pred,kelly_1,kelly_X,kelly_2)
 
         return self.last_pred 
-		
+
+class KellyPredictor3(KellyPredictor):
+    def __init__(self, league, method="ELO_g2", league_thresh=0.):
+        KellyPredictor.__init__(self, league, method, league_thresh)
+        return              
+
+    def predict(self, match):
+        KellyPredictor.predict(self, match)
+
+        self.bet *= 2.
+
+        self.bet = max(1.27, self.bet)
+        
+        return self.last_pred 
+
 class GreedyPredictor(Predictor):
     def __init__(self, league_thresh=0.):
         Predictor.__init__(self, league_thresh)
