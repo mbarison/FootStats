@@ -37,6 +37,7 @@ class PredictionEngine(object):
                 'Liga'        : 0.15,
                 'Ligue'       : 0.15,
                 'LigaP'       : 0.08,
+                'MLS'         : 0,
                 }
         
     def __init__(self,league,year):
@@ -76,18 +77,34 @@ class PredictionEngine(object):
         self._csvFile.seek(0)
         
         self._teamDict = {}
-                
+        
+        missing_teams = filter(lambda x:x not in self._old_data.keys(), self._seasonTeams)
+        print "New or promoted teams:", missing_teams
+        nmiss = max(1,len(missing_teams)) 
+        
         for k in fitDict[league].keys():
             try:
+                dem = sorted([v[k] for v in self._old_data.values() if v.has_key(k)])[:nmiss]
+                val = 1.*sum(dem)/nmiss
+                print k, dem, val
                 if self._old_data.has_key("Dummy"):
-                    self._emptyDict[k] = [self._old_data["Dummy"]]
+                    self._old_data["Dummy"][k] = val
                 else:
-                    dem = sorted([v[k] for v in self._old_data.values()])[:3]
-                    val = sum(dem)/3.
-                    self._emptyDict[k] = [val]
-                    self._old_data["Dummy"] = {"ELO_g2" : val}
+                    self._old_data["Dummy"] = {k : val}
             except:
                 pass
+                
+#         for k in fitDict[league].keys():
+#             try:
+#                 if self._old_data.has_key("Dummy"):
+#                     self._emptyDict[k] = [self._old_data["Dummy"]]
+#                 else:
+#                     dem = sorted([v[k] for v in self._old_data.values()])[:len(missing_teams)]
+#                     val = 1.*sum(dem)/len(missing_teams)
+#                     self._emptyDict[k] = [val]
+#                     self._old_data["Dummy"] = {k : val}
+#             except:
+#                 pass
         
         for i in self._seasonTeams:
             if not self._old_data.has_key(i):

@@ -6,6 +6,7 @@ import pickle
 import requests
 import pickle
 import selenium.webdriver 
+#from selenium.webdriver.support import expected_conditions as EC
 
 _lnk  = "http://www.football-data.co.uk/mmz4281/%0.2d%0.2d/%s.csv"  
 # D1 = Bundesliga, E0 = Premiership, SP1=Liga, F1=Ligue, SC0=Scottish Premiership
@@ -27,10 +28,16 @@ for k,_lega in leagues.iteritems():
                 os.system(_cmd)
                 time.sleep(1)
 
+pw = pickle.load(open("pwd.pickle"))
+
 driver = selenium.webdriver.Firefox()
 driver.get("http://www.betbrain.com")
 
-time.sleep(20)
+driver.find_element_by_id("username").send_keys(pw["uname"])
+driver.find_element_by_id("password").send_keys(pw["pwd"])
+driver.find_element_by_name("LoginButton") .click()
+
+time.sleep(10)
 
 pickle.dump( driver.get_cookies() , open("cookies.pkl","wb"))
 
@@ -51,7 +58,8 @@ _dct = {"SerieA"      : "italy/serie-a",
         "Bundesliga"  : "germany/bundesliga", 
         "Liga"        : "spain/primera-division",
         "Ligue"       : "france/ligue-1",
-        #"LigaP"       : ""
+        "MLS"         : "united-states/mls",
+        "LigaP"       : "portugal/primeira-liga"
         }
 
 for k,v in _dct.iteritems():

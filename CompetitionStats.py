@@ -65,16 +65,20 @@ class CompetitionStats(object):
         
         del _Reader
         
+        missing_teams = filter(lambda x:x not in self._old_data.keys(), self._seasonTeams)
+        print "New or promoted teams:", missing_teams
+        nmiss = max(1,len(missing_teams)) 
+                                
         for k in fitDict[league].keys():
-            try:
+            if 1: #try:
+                dem = sorted([v[k] for v in self._old_data.values() if v.has_key(k)])[:nmiss]
+                val = 1.*sum(dem)/nmiss
+                print k, dem, val
                 if self._old_data.has_key("Dummy"):
-                    self._emptyDict[k] = [self._old_data["Dummy"]]
+                    self._old_data["Dummy"][k] = val
                 else:
-                    dem = sorted([v[k] for v in self._old_data.values()])[:3]
-                    val = sum(dem)/3.
-                    self._emptyDict[k] = [val]
-                    self._old_data["Dummy"] = {"ELO_g2" : val}
-            except:
+                    self._old_data["Dummy"] = {k : val}
+            else: #except:
                 pass
         
         for i in self._seasonTeams:
@@ -361,7 +365,7 @@ class CompetitionStats(object):
         ax = fig.add_subplot(111, title="%s Expected points: %.3g %.3g (actual=%d)" % (team, sum(_expected), sum(_expected_g2), sum(_actual)))
         
         _f = _actual-_expected
-        x = range(0,len(_f))
+        x = np.array(range(0,len(_f)))
         
         _fplus  = map(lambda x:[0.,x][x>0] ,_f)
         _fminus = map(lambda x:[0.,x][x<0], _f)
@@ -372,17 +376,17 @@ class CompetitionStats(object):
         
         ax.bar(x,_fplus,1.,color="g")
         ax.bar(x,_fminus,1.,color="r")
-        ax.plot(x,np.cumsum(_expected),'b--')
-        ax.plot(x,exp_g2,'r--')
+        ax.plot(x+1,np.cumsum(_expected),'b--')
+        ax.plot(x+1,exp_g2,'r--')
         
         cnt = 1
         while (10*cnt) < len(x):
-            ax.axvline(x[(10*cnt)-1],color='black')
+            ax.axvline(x[(10*cnt)],color='black')
             cnt += 1
         
-        ax.fill_between(x, exp_g2_lo, exp_g2_hi, facecolor='r', alpha=0.25)
+        ax.fill_between(x+1, exp_g2_lo, exp_g2_hi, facecolor='r', alpha=0.25)
         
-        ax.plot(x,np.cumsum(_actual),'b-')
+        ax.plot(x+1,np.cumsum(_actual),'b-')
         ax.set_xlim([0,len(x)])
         fig.tight_layout()
                 
@@ -480,8 +484,9 @@ class CompetitionStats(object):
                 self.makeELOPlot(i)
             except:
                 pass
-            self.makeGoalsPlot(i)
-            self.makeGoalsAgainstPlot(i)
+            if self._games > 90:
+                self.makeGoalsPlot(i)
+                self.makeGoalsAgainstPlot(i)
             self.makeFormPlot(i)
             self.makeExpectationPlot(i)
             self.makeBrierScorePlot(i)

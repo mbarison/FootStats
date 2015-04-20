@@ -19,7 +19,8 @@ compDict = {"SerieA"      : 0.2,
             "Bundesliga"  : 0.17,
             "Liga"        : 0.15,
             "Ligue"       : 0.11,
-            "LigaP"       : 0.08}
+            "LigaP"       : 0.08,
+            "MLS"         : 0,}
 
 
 if len(sys.argv) > 1:
@@ -77,11 +78,13 @@ pE.runData()
 pE.finalReport()
 pE.finalPlots()
 
+print "PREDICTIONS", comp 
+
 bP = BetPredictor(comp, pE.dumpTeamDict())
 #bP.addPredictor(predictors[0])
 #bP.addPredictor(predictors[-1])
 bP.addPredictor(predictors[-2])
-bP.predictMatchesNew()
+bP.predictMatches()
 
     
 
