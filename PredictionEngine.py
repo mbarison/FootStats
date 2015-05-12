@@ -30,20 +30,11 @@ def updateELO(match,tD,key,func):
     tA.update_ranking(key,eA)
     return (eH,eA)
 
-class PredictionEngine(object):
-    thrDict = { 'SerieA'      : 0.2,
-                'Premiership' : 0.2,
-                'Bundesliga'  : 0.1,
-                'Liga'        : 0.15,
-                'Ligue'       : 0.15,
-                'LigaP'       : 0.08,
-                'MLS'         : 0,
-                }
-        
+class PredictionEngine(object):        
     def __init__(self,league,year):
         self._year   = year
         self._league = league
-        self._league_thresh = self.thrDict[league]
+        #self._league_thresh = self.thrDict[league]
         self._emptyDict = { "totalPoints" : 0, "gameResults" : [], "topHalf" : [], "bottomHalf" : [], "homeGoals" : [], "awayGoals" : [] }
         self._predictors = []
         self._seasonTeams = set()
@@ -115,8 +106,12 @@ class PredictionEngine(object):
         print "ELO SUM:", elo_sum
         for k in  self._seasonTeams:
             self._old_data[k]["ELO_g2"] *= (1e3*nteams)/elo_sum
-                
-        correctionFactors = cPickle.load(open("data/%s_CorrectionFactors.pickle" % self._league))
+        
+        try:        
+            correctionFactors = cPickle.load(open("data/%s_CorrectionFactors.pickle" % self._league))
+        except:
+            print "No correction factors for", self._league
+            correctionFactors = {}
         step = 3
         
         if self._year == 2014 and correctionFactors.has_key(self._league):

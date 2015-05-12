@@ -216,12 +216,13 @@ class KellyPredictor(Predictor):
         odds_1 = max([b365[0],ps[0],wh[0]])
         odds_X = max([b365[1],ps[1],wh[1]])   
         odds_2 = max([b365[2],ps[2],wh[2]])
+        self.odds = [odds_1,odds_X,odds_2]
 
-        print "Kelly odds: %g %g %g" % (odds_1, odds_X, odds_2)
+        #print "Kelly odds: %g %g %g" % (odds_1, odds_X, odds_2)
 
         prob_1,prob_X,prob_2 = self.get_probs(match)
 
-        print "Kelly probs: %g %g %g" % (prob_1,prob_X,prob_2)
+        #print "Kelly probs: %g %g %g" % (prob_1,prob_X,prob_2)
 
 
         def kelly(p,o):
@@ -248,7 +249,7 @@ class KellyPredictor(Predictor):
 
         self.bet = 10.*max(kelly_max,0.)
 
-        print "%s Pred: %s (k_1:%.3g, k_X:%.3g, k_2:%.3g)" % (self.name,self.last_pred,kelly_1,kelly_X,kelly_2)
+        #print "%s Pred: %s (k_1:%.3g, k_X:%.3g, k_2:%.3g)" % (self.name,self.last_pred,kelly_1,kelly_X,kelly_2)
 
         return self.last_pred 
 
@@ -314,6 +315,7 @@ class KellyPredictor3(KellyPredictor):
         self.bet *= 2.
 
         self.bet = max(1.27, self.bet)
+        self.bet = min(5., self.bet)
         
         return self.last_pred 
 

@@ -9,15 +9,18 @@ class Match(object):
         try:
             self._date = datetime.strptime(d["Date"],"%d/%m/%y")
         except:
+            print d["Date"]
             self._date = datetime.strptime(d["Date"],"%d/%m/%Y")
-        if teamChange.has_key(d["HomeTeam"]):
-            self._homeTeam = teamChange[d["HomeTeam"]]
+        ht = d["HomeTeam"].strip()
+        if teamChange.has_key(ht):
+            self._homeTeam = teamChange[ht]
         else:
-            self._homeTeam = d["HomeTeam"]
-        if teamChange.has_key(d["AwayTeam"]):
-            self._awayTeam = teamChange[d["AwayTeam"]]
+            self._homeTeam = ht
+        at = d["AwayTeam"].strip()
+        if teamChange.has_key(at):
+            self._awayTeam = teamChange[at]
         else:
-            self._awayTeam = d["AwayTeam"]     
+            self._awayTeam = at     
         try:    
             self._homeGoals = int(d["FTHG"])
             self._awayGoals = int(d["FTAG"])   

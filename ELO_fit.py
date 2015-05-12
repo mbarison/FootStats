@@ -129,7 +129,6 @@ def updatePseudoLikelihood(match,tD,key,comp):
 
         
 games = 0
-draw_actu    = 0
 
 teamDict={}
 
@@ -190,29 +189,23 @@ for fn in l:
         dataPoints["Form"][match.get_result()].append(formDiff)
         dataPoints["Form_2"][match.get_result()].append(form2Diff)
         
-    elo_sum = sum([teamDict[i].get_ranking("ELO_h") for i in seasonTeams])
-    print "ELO_h Sum:", elo_sum
+    elo_sum = sum([teamDict[i].get_ranking("ELO_g2") for i in seasonTeams])
+    print "ELO_g2 Sum:", elo_sum
     
     # rescale
     for i in seasonTeams:
-        rnk = teamDict[i].get_ranking("ELO_h")
-        teamDict[i].update_ranking("ELO_h",rnk*2e4/elo_sum)
+        rnk = teamDict[i].get_ranking("ELO_g2")
+        teamDict[i].update_ranking("ELOg2",rnk*1e3*len(seasonTeams)/elo_sum)
     
     for i in teamDict.keys():
         if not i in seasonTeams:
             for j in xrange(season_games/len(seasonTeams)):
-                rnk = teamDict[i].get_ranking("ELO_h")
+                rnk = teamDict[i].get_ranking("ELO_g2")
                 teamDict[i].update_ranking("ELO_h",rnk)
     
     f.close()
 print "\n\n"
-#o_f = open("%s_%d_ELO.pickle" % (comp.replace('_',''),2013), "w")
-d = dict([(k,v.get_ranking("ELO_h")) for k,v in teamDict.iteritems()])
-for k in sorted(d.keys()):
-    print k,d[k]
-#c#cPickle.dump(d,o_f)
-#o_f.close()   Pickle.dump(d,o_f)
-#o_f.close()   
+  
 
 f1 = np.array([[i[0],i[1]] for i in formELOPoints["1"]])
 f2 = np.array([[i[0],i[1]] for i in formELOPoints["2"]])
@@ -256,28 +249,11 @@ for k,v in teamDict.iteritems():
 cPickle.dump(d,o_f)
 o_f.close()   
 
-print "\n\n"
-#o_f = open("%s_%d_ELO.pickle" % (comp.replace('_',''),2013), "w")
-d = dict([(k,v.get_ranking("ELO_b")) for k,v in teamDict.iteritems()])
-for k in sorted(d.keys()):
-    print k,d[k]
-    
-print "\n\n"
-#o_f = open("%s_%d_ELO.pickle" % (comp.replace('_',''),2013), "w")
-d = dict([(k,v.get_ranking("ELO_g")) for k,v in teamDict.iteritems()])
-for k in sorted(d.keys()):
-    print k,d[k]
- 
-print "\n\n"
-#o_f = open("%s_%d_ELO.pickle" % (comp.replace('_',''),2013), "w")
 d = dict([(k,v.get_ranking("ELO_g2")) for k,v in teamDict.iteritems()])
 for k in sorted(d.keys()):
     print k,d[k]
  
 print "\n\n"    
-print "Draws :%g%%" % (100.*draw_actu/games)
-print "\n\n"   
-
 
 def perform_lda(X,y,nclasses):
     
@@ -435,11 +411,11 @@ def plot_step_lda():
 
 # In[26]:
 
-for i in sorted(seasonTeams,key=lambda x:teamDict[x].get_ranking("ELO_h"),reverse=True):
+for i in sorted(seasonTeams,key=lambda x:teamDict[x].get_ranking("ELO_g2"),reverse=True):
     #y = teamDict[i].get_full_ranking("ELO_g2")
     #x = np.linspace(0,1,len(y))
     #plt.plot(x,y)
-    print i,"\t",teamDict[i].get_ranking("ELO_h"),"\t",teamDict[i].get_ranking("ELO_b"),"\t",teamDict[i].get_ranking("ELO_g"),teamDict[i].get_ranking("ELO_g2")
+    print i,"\t",teamDict[i].get_ranking("ELO_g2"),"\t",teamDict[i].get_ranking("ELO_b"),"\t",teamDict[i].get_ranking("ELO_g"),teamDict[i].get_ranking("ELO_h")
 
 fig, ax = plt.subplots(1,1)
 

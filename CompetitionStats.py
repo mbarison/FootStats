@@ -91,8 +91,12 @@ class CompetitionStats(object):
         for k in  self._seasonTeams:
             self._old_data[k]["ELO_g2"] *= (1e3*nteams)/elo_sum
 
-        
-        self._correctionFactors = cPickle.load(open("data/%s_CorrectionFactors.pickle" % self._league))
+        try:
+            self._correctionFactors = cPickle.load(open("data/%s_CorrectionFactors.pickle" % self._league))
+        except:
+            self._correctionFactors = {self._league : {}}
+            for i in self._seasonTeams:
+                self._correctionFactors[self._league][i] = []
         self._step = 3
         
         print self._correctionFactors
