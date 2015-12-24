@@ -68,28 +68,33 @@ class CompetitionStats(object):
         missing_teams = filter(lambda x:x not in self._old_data.keys(), self._seasonTeams)
         print "New or promoted teams:", missing_teams
         nmiss = max(1,len(missing_teams)) 
-                                
+                    
+        DUMMY = 0
+            
         for k in fitDict[league].keys():
             if 1: #try:
-                dem = sorted([v[k] for v in self._old_data.values() if v.has_key(k)])[:nmiss]
+                print self._old_data.values()
+                dem = sorted([v for v in self._old_data.values()])[:nmiss]
                 val = 1.*sum(dem)/nmiss
                 print k, dem, val
-                if self._old_data.has_key("Dummy"):
-                    self._old_data["Dummy"][k] = val
-                else:
-                    self._old_data["Dummy"] = {k : val}
+                #if self._old_data.has_key("Dummy"):
+                #    self._old_data["Dummy"][k] = val
+                #else:
+                #    self._old_data["Dummy"] = {k : val}
+                DUMMY = val
             else: #except:
                 pass
         
         for i in self._seasonTeams:
             if not self._old_data.has_key(i):
-                self._old_data[i] = self._old_data["Dummy"]
+                self._old_data[i] = DUMMY #self._old_data["Dummy"]
 
-        elo_sum = sum([self._old_data[k]["ELO_g2"] for k in  self._seasonTeams])
+        elo_sum = sum([self._old_data[k] for k in  self._seasonTeams])
         nteams = len(self._seasonTeams)
         print "ELO SUM:", elo_sum
         for k in  self._seasonTeams:
-            self._old_data[k]["ELO_g2"] *= (1e3*nteams)/elo_sum
+            #self._old_data[k]["ELO_g2"] *= (1e3*nteams)/elo_sum
+            self._old_data[k] *= (1e3*nteams)/elo_sum
 
         try:
             self._correctionFactors = cPickle.load(open("data/%s_CorrectionFactors.pickle" % self._league))

@@ -88,6 +88,16 @@ class Team(object):
          
         return (goalsFor+shotsFor+shotsTFor)-(goalsAgainst+shotsAgainst+shotsTAgainst)    
     
+    def get_trf(self):
+        sf=np.array(self.get_shots_for_full())
+        sa=np.array(self.get_shots_against_full())
+        trf=1.*sf/(sf+sa)
+        trf=filter(lambda x:np.isnan(x)==False, trf)
+        return trf
+    
+    def get_trf_mean(self):
+        return np.mean(self.get_trf())
+    
     def get_matches(self):
         return self._matches
     
@@ -168,6 +178,13 @@ class Team(object):
  
     def get_goals_against(self):
         return self.get_goals_against_home() + self.get_goals_against_away()   
+  
+    def get_shots_for_full(self):
+        return map(lambda x:[0,x.get_home_shots()][x.get_home_team()==self._name]+[0,x.get_away_shots()][x.get_away_team()==self._name], self._matches)
+            
+    def get_shots_against_full(self):
+        return map(lambda x:[0,x.get_home_shots()][x.get_away_team()==self._name]+[0,x.get_away_shots()][x.get_home_team()==self._name], self._matches)
+
     
     def get_lda2(self):
         

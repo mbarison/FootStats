@@ -25,6 +25,7 @@ dataPoints = { "ELO_h" : {"1" : [], "2" : [], "X" : []},
                "Form" : {"1" : [], "2" : [], "X" : []},
                "Form_2" : {"1" : [], "2" : [], "X" : []},
                "LDA_2" : {"1" : [], "2" : [], "X" : []},
+               "TRF" : {"1" : [], "2" : [], "X" : []},
                }
 
 formELOPoints = {"1" : [], "2" : [], "X" : []}
@@ -188,6 +189,8 @@ for fn in l:
         
         dataPoints["Form"][match.get_result()].append(formDiff)
         dataPoints["Form_2"][match.get_result()].append(form2Diff)
+        
+        dataPoints["TRF"][match.get_result()].append((teamDict[homeTeam].get_trf_mean(),teamDict[awayTeam].get_trf_mean()))
         
     elo_sum = sum([teamDict[i].get_ranking("ELO_g2") for i in seasonTeams])
     print "ELO_g2 Sum:", elo_sum
@@ -555,4 +558,18 @@ for k in ["ELO_h","ELO_b","ELO_g","ELO_g2","LDA_2","Form","Form_2"]:
 #         nbins/=2# In[ ]:
 
 
+dataPoints["TRF"]["1"] = filter(lambda x:np.any(np.isnan(x))==False, dataPoints["TRF"]["1"])
+dataPoints["TRF"]["2"] = filter(lambda x:np.any(np.isnan(x))==False, dataPoints["TRF"]["2"])
+dataPoints["TRF"]["X"] = filter(lambda x:np.any(np.isnan(x))==False, dataPoints["TRF"]["X"])
 
+f1 = np.array([[i[0],i[1]] for i in dataPoints["TRF"]["1"]])
+f2 = np.array([[i[0],i[1]] for i in dataPoints["TRF"]["2"]])
+f3 = np.array([[i[0],i[1]] for i in dataPoints["TRF"]["X"]])
+
+l_f1 = len(f1)
+l_f2 = len(f2)
+
+TRFArray =np.concatenate((f1,f2,f3))
+
+X=TRFArray
+y=np.concatenate((np.array([1 for i in f1]),np.array([2 for i in f2]),np.array([3 for i in f3])))

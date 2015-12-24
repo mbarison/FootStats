@@ -21,7 +21,7 @@ leagues = {"D1"  : "Bundesliga",
 	       "P1"  : "LigaP",}
 
 for k,_lega in leagues.iteritems():
-        for i in range(2014,2015):
+        for i in range(2015,2016):
                 _l = _lnk % (i%100,(i+1)%100,k)
                 _cmd = "curl %s -o %s_%d.csv" % (_l, _lega, i)
                 print _cmd
@@ -64,7 +64,7 @@ _dct = {"SerieA"      : "italy/serie-a",
 
 for k,v in _dct.iteritems():
     print "%s/%s/" % (baseurl,v)
-    r=_sesh.get("%s/%s/" % (baseurl,v), cookies=cookies)
+    r=_sesh.get("%s/%s/" % (baseurl,v), cookies=cookies, verify=False)
     o_f = open("BetBrain_%s.html" % k,"w")
     o_f.write(r.text.encode("UTF8"))
     o_f.close()

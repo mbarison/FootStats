@@ -34,7 +34,7 @@ else:
 
 all_sim = np.array([0.]*10000)
 
-for comp in ["SerieA","Bundesliga","Premiership","Ligue","MLS","LigaP"]:
+for comp in ["Liga"]: #"SerieA","Bundesliga","Premiership","Ligue","MLS","LigaP"]:
     if comp=="MLS":
         year = 2015
     else:
